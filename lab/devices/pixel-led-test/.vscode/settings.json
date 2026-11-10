@@ -1,0 +1,16 @@
+{
+  // The nRF Connect extension does NOT read BOARD_ROOT out of CMakeLists.txt
+  // when it populates the board dropdown — it only looks here. Use absolute
+  // paths; relative ones are unreliable in this extension.
+  //
+  // This is the directory CONTAINING boards/, not the board itself:
+  //   AURA/holyiot/boards/holyiot/holyiot_25008_nrf54l15/
+  //   ^------------^ board root
+  "nrf-connect.boardRoots": [
+    "/Users/benjaminmales/aetherfield-platform/AURA/holyiot"
+  ],
+
+  "nrf-connect.applications": [
+    "/Users/benjaminmales/aetherfield-platform/AURA/pixel-led-test"
+  ]
+}

@@ -1,0 +1,48 @@
+/*
+ * Aetherfield Pixel gateway — Seeed XIAO nRF54LM20A + Adafruit W5500.
+ *
+ * Wiring (XIAO header pin -> SoC pin):
+ *
+ *   W5500 SCK   D8    P1.04   |
+ *   W5500 MISO  D9    P1.05   |  fixed: this is the XIAO SPI header
+ *   W5500 MOSI  D10   P1.06   |
+ *   W5500 CS    D0    P1.00
+ *   W5500 INT   D1    P1.31   (wired, but the driver polls — see below)
+ *   W5500 RST   D2    P1.30
+ *
+ * Feed the breakout from 5V, not 3V3. The W5500 pulls ~150 mA with the link
+ * up, which is more than the XIAO's own regulator should be asked for.
+ *
+ * D6/D7 are left alone so uart21 stays available as a debug console.
+ */
+
+/ {
+	chosen {
+		/* Console and shell over the onboard SAMD11 to USB-C. The
+		 * server link is Ethernet, so the UART is purely for humans. */
+		zephyr,console = &uart20;
+		zephyr,shell-uart = &uart20;
+	};
+};
+
+&spi00 {
+	status = "okay";
+
+	/*
+	 * Entry 0 is whatever the board already had — keep it so any onboard
+	 * SPI device keeps its chip select. The W5500 is appended as entry 1,
+	 * which is what its reg = <1> selects.
+	 */
+	cs-gpios = <&gpio2 5 GPIO_ACTIVE_LOW>,
+		   <&gpio1 0 GPIO_ACTIVE_LOW>;   /* D0 */
+
+	w5500: w5500@1 {
+		compatible = "aetherfield,w5500-raw";
+		reg = <1>;
+		/* 16 MHz. The part will do far more, but this is a flying-lead
+		 * breakout on a header — leave the margin in. */
+		spi-max-frequency = <16000000>;
+		int-gpios   = <&gpio1 31 GPIO_ACTIVE_LOW>;  /* D1 */
+		reset-gpios = <&gpio1 30 GPIO_ACTIVE_LOW>;  /* D2 */
+	};
+};

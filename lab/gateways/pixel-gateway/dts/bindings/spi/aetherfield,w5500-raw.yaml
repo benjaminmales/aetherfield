@@ -1,0 +1,24 @@
+# WIZnet W5500 addressed directly through its own hardware TCP sockets.
+#
+# Deliberately NOT "wiznet,w5500": that compatible binds Zephyr's Ethernet
+# driver, which pushes frames up the IP stack through net_recv_data() — the
+# same symbol the raw 802.15.4 receive path already owns. Driving the W5500's
+# on-chip TCP stack instead keeps Zephyr networking out of the image entirely,
+# so the radio code needs no changes at all.
+
+description: WIZnet W5500 driven via its on-chip TCP/IP stack
+
+compatible: "aetherfield,w5500-raw"
+
+include: spi-device.yaml
+
+properties:
+  int-gpios:
+    type: phandle-array
+    required: false
+    description: W5500 INTn, active low. Unused today; polled instead.
+
+  reset-gpios:
+    type: phandle-array
+    required: true
+    description: W5500 RSTn, active low. Held low >500us to reset the chip.

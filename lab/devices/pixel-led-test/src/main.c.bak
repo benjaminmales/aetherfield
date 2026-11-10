@@ -1,0 +1,258 @@
+/*
+ * pixel-led-test — LED bring-up for HOLYIOT-25008 V1.0.
+ *
+ * Two jobs:
+ *
+ *   1. Prove a STOCK board works. Blinks the onboard RGB blue on boot and
+ *      keeps blinking it. If that works, the module, the toolchain, the
+ *      board definition and your SWD connection are all good — so anything
+ *      that fails afterwards is the modification, not the baseline.
+ *
+ *   2. Drive the modified HB blue on P1.11, once the hack is fitted.
+ *      Off by default, and duty-capped, because there is no series resistor.
+ *
+ * The two LEDs use different APIs on purpose:
+ *   RGB red/blue  P2.07 / P2.06  GPIO only — P2 is MCU-domain and the
+ *                                nRF54L15's PWM peripherals are LP-domain,
+ *                                so they physically cannot reach these pins.
+ *   RGB green     P1.09          PWM (LP-domain, pwm20 ch0)
+ *   HB blue       P1.11          PWM (LP-domain, pwm20 ch1) — the mod
+ *
+ * All three RGB channels are active-LOW: the LED is common-anode to VDD and
+ * the MCU sinks. gpio_pin_set_dt() handles that from the devicetree flag, so
+ * "1" means lit regardless.
+ *
+ * Console is RTT over the SWD you already have connected.
+ *   rgb blue|red|green|off   pick a colour, stop the blinking
+ *   rgb blink                back to blinking blue
+ *   led info | duty <pm> | off    the modified HB LED
+ */
+
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/pwm.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/sys/printk.h>
+#include <stdlib.h>
+
+/* ------------------------------------------------------- onboard RGB ---- */
+static const struct gpio_dt_spec rgb_r = GPIO_DT_SPEC_GET(DT_ALIAS(led_red), gpios);
+static const struct gpio_dt_spec rgb_b = GPIO_DT_SPEC_GET(DT_ALIAS(led_blue), gpios);
+static const struct pwm_dt_spec  rgb_g = PWM_DT_SPEC_GET(DT_ALIAS(led_green));
+
+/* ------------------------------------------------- modified HB blue ---- */
+static const struct pwm_dt_spec hb = PWM_DT_SPEC_GET(DT_ALIAS(led_hb));
+
+/*
+ * Nothing limits HB current except C19's ESR and the cell's internal
+ * resistance — there is no series resistor. 10% is far more than you need to
+ * see it working, and well short of trouble.
+ */
+#define HB_MAX_PER_MILLE 100
+static uint32_t hb_per_mille;
+
+/* Blink state. 0 = solid/off, non-zero = auto-blinking blue. */
+static atomic_t blink_on = ATOMIC_INIT(1);
+
+static void rgb_all_off(void)
+{
+	gpio_pin_set_dt(&rgb_r, 0);
+	gpio_pin_set_dt(&rgb_b, 0);
+	if (pwm_is_ready_dt(&rgb_g)) {
+		pwm_set_pulse_dt(&rgb_g, 0);
+	}
+}
+
+static uint32_t hb_ns(uint32_t per_mille)
+{
+	return (uint32_t)(((uint64_t)hb.period * per_mille) / 1000U);
+}
+
+/* ------------------------------------------------------------- shell ---- */
+
+static int cmd_rgb_blue(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc); ARG_UNUSED(argv);
+	atomic_set(&blink_on, 0);
+	rgb_all_off();
+	gpio_pin_set_dt(&rgb_b, 1);
+	shell_print(sh, "onboard blue ON (P2.06, solid)");
+	return 0;
+}
+
+static int cmd_rgb_red(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc); ARG_UNUSED(argv);
+	atomic_set(&blink_on, 0);
+	rgb_all_off();
+	gpio_pin_set_dt(&rgb_r, 1);
+	shell_print(sh, "onboard red ON (P2.07, solid)");
+	return 0;
+}
+
+static int cmd_rgb_green(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc); ARG_UNUSED(argv);
+	atomic_set(&blink_on, 0);
+	rgb_all_off();
+	if (!pwm_is_ready_dt(&rgb_g)) {
+		shell_error(sh, "green PWM not ready");
+		return -ENODEV;
+	}
+	pwm_set_pulse_dt(&rgb_g, rgb_g.period / 2);
+	shell_print(sh, "onboard green ON (P1.09, PWM 50%%)");
+	return 0;
+}
+
+static int cmd_rgb_off(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc); ARG_UNUSED(argv);
+	atomic_set(&blink_on, 0);
+	rgb_all_off();
+	shell_print(sh, "onboard RGB off");
+	return 0;
+}
+
+static int cmd_rgb_blink(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc); ARG_UNUSED(argv);
+	rgb_all_off();
+	atomic_set(&blink_on, 1);
+	shell_print(sh, "blinking onboard blue");
+	return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_rgb,
+	SHELL_CMD(blue,  NULL, "Onboard blue solid (P2.06)",  cmd_rgb_blue),
+	SHELL_CMD(red,   NULL, "Onboard red solid (P2.07)",   cmd_rgb_red),
+	SHELL_CMD(green, NULL, "Onboard green 50%% (P1.09)",  cmd_rgb_green),
+	SHELL_CMD(blink, NULL, "Resume blinking blue",        cmd_rgb_blink),
+	SHELL_CMD(off,   NULL, "All off",                     cmd_rgb_off),
+	SHELL_SUBCMD_SET_END
+);
+SHELL_CMD_REGISTER(rgb, &sub_rgb, "Onboard RGB indicator", NULL);
+
+static int cmd_led_info(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc); ARG_UNUSED(argv);
+	shell_print(sh, "onboard RGB");
+	shell_print(sh, "  red   P2.07 gpio, ready %s", gpio_is_ready_dt(&rgb_r) ? "yes" : "NO");
+	shell_print(sh, "  blue  P2.06 gpio, ready %s", gpio_is_ready_dt(&rgb_b) ? "yes" : "NO");
+	shell_print(sh, "  green P1.09 pwm ch%u, ready %s",
+		    rgb_g.channel, pwm_is_ready_dt(&rgb_g) ? "yes" : "NO");
+	shell_print(sh, "modified HB blue");
+	shell_print(sh, "  P1.11 pwm ch%u, ready %s", hb.channel,
+		    pwm_is_ready_dt(&hb) ? "yes" : "NO");
+	shell_print(sh, "  period %u us (%u Hz), duty %u.%u%% = %u us on",
+		    hb.period / 1000U, 1000000000U / hb.period,
+		    hb_per_mille / 10U, hb_per_mille % 10U, hb_ns(hb_per_mille) / 1000U);
+	return 0;
+}
+
+static int cmd_led_duty(const struct shell *sh, size_t argc, char **argv)
+{
+	if (argc != 2) {
+		shell_error(sh, "usage: led duty <per-mille>   (1 = 0.1%%)");
+		return -EINVAL;
+	}
+	char *end;
+	long v = strtol(argv[1], &end, 10);
+
+	if (*end != '\0' || v < 0) {
+		shell_error(sh, "'%s' is not a number", argv[1]);
+		return -EINVAL;
+	}
+	if (v > HB_MAX_PER_MILLE) {
+		shell_error(sh, "%ld exceeds the %u cap — no series resistor on this "
+			    "board. Check C19 and your current limit first.",
+			    v, HB_MAX_PER_MILLE);
+		return -EINVAL;
+	}
+	if (!pwm_is_ready_dt(&hb)) {
+		shell_error(sh, "HB PWM not ready");
+		return -ENODEV;
+	}
+	int err = pwm_set_pulse_dt(&hb, hb_ns((uint32_t)v));
+
+	if (err) {
+		shell_error(sh, "pwm_set_pulse_dt: %d", err);
+		return err;
+	}
+	hb_per_mille = (uint32_t)v;
+	shell_print(sh, "HB duty %ld.%ld%% -> %u us on every %u us",
+		    v / 10, v % 10, hb_ns((uint32_t)v) / 1000U, hb.period / 1000U);
+	return 0;
+}
+
+static int cmd_led_off(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc); ARG_UNUSED(argv);
+	if (pwm_is_ready_dt(&hb)) {
+		pwm_set_pulse_dt(&hb, 0);
+	}
+	hb_per_mille = 0;
+	shell_print(sh, "HB off");
+	return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_led,
+	SHELL_CMD(info, NULL, "Show all LED pin assignments", cmd_led_info),
+	SHELL_CMD(duty, NULL, "HB duty in per-mille (1=0.1%%)", cmd_led_duty),
+	SHELL_CMD(off,  NULL, "HB off",                       cmd_led_off),
+	SHELL_SUBCMD_SET_END
+);
+SHELL_CMD_REGISTER(led, &sub_led, "Modified HB blue LED", NULL);
+
+/* -------------------------------------------------------------- main ---- */
+
+int main(void)
+{
+	printk("\n=== pixel-led-test : HOLYIOT-25008 ===\n");
+
+	if (!gpio_is_ready_dt(&rgb_b) || !gpio_is_ready_dt(&rgb_r)) {
+		printk("ERROR: RGB GPIOs not ready\n");
+		return 0;
+	}
+	gpio_pin_configure_dt(&rgb_r, GPIO_OUTPUT_INACTIVE);
+	gpio_pin_configure_dt(&rgb_b, GPIO_OUTPUT_INACTIVE);
+
+	/* Colour sweep so you can confirm all three channels in one go. */
+	printk("RGB sweep: red, green, blue...\n");
+	gpio_pin_set_dt(&rgb_r, 1); k_msleep(400); gpio_pin_set_dt(&rgb_r, 0);
+	if (pwm_is_ready_dt(&rgb_g)) {
+		pwm_set_pulse_dt(&rgb_g, rgb_g.period / 2);
+		k_msleep(400);
+		pwm_set_pulse_dt(&rgb_g, 0);
+	} else {
+		printk("  (green PWM not ready — check the overlay applied)\n");
+	}
+	gpio_pin_set_dt(&rgb_b, 1); k_msleep(400); gpio_pin_set_dt(&rgb_b, 0);
+
+	/* HB stays dark. It may not exist yet, and if it does there is no
+	 * series resistor, so it does not get driven without being asked. */
+	if (pwm_is_ready_dt(&hb)) {
+		pwm_set_pulse_dt(&hb, 0);
+		printk("HB blue on P1.11 is ready, and OFF until you ask.\n");
+	} else {
+		printk("HB blue PWM not ready (fine on an unmodified board).\n");
+	}
+
+	printk("\nBlinking onboard BLUE (P2.06) at 1 Hz.\n"
+	       "  rgb blue|red|green|off   solid colour\n"
+	       "  rgb blink                resume\n"
+	       "  led info                 pin assignments\n"
+	       "  led duty 10              HB 1%% = 200 us flash (modified boards)\n\n");
+
+	while (1) {
+		if (atomic_get(&blink_on)) {
+			gpio_pin_set_dt(&rgb_b, 1);
+			k_msleep(500);
+			gpio_pin_set_dt(&rgb_b, 0);
+			k_msleep(500);
+		} else {
+			k_msleep(200);
+		}
+	}
+	return 0;
+}

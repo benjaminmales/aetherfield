@@ -1,0 +1,4 @@
+# Vendor prefixes used by out-of-tree bindings in this application.
+# Without this, Zephyr warns "unknown vendor prefix 'aetherfield'" on every
+# build — harmless, but it trains people to ignore devicetree warnings.
+aetherfield	Aetherfield

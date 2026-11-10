@@ -1,0 +1,330 @@
+/* PairDevice.css */
+
+.pair-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, #0f172a 0%, #1e293b 45%, #0f172a 100%);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: #e2e8f0;
+}
+
+.pair-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 32px 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+.pair-card--error {
+  text-align: center;
+}
+
+.pair-logo {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #64748b;
+  margin-bottom: 24px;
+  text-transform: uppercase;
+}
+
+/* ── Steps ── */
+
+.pair-steps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 28px;
+}
+
+.pair-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.pair-step--active {
+  color: #e2e8f0;
+}
+
+.pair-step--done {
+  color: #34d399;
+}
+
+.pair-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.pair-step--active .pair-step-num {
+  border-color: #818cf8;
+  color: #818cf8;
+}
+
+.pair-step--done .pair-step-num {
+  border-color: #34d399;
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
+}
+
+.pair-step-line {
+  flex: 1;
+  height: 1px;
+  background: #334155;
+  min-width: 12px;
+}
+
+/* ── Body ── */
+
+.pair-body h1 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.pair-body p {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+
+.pair-body--center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pair-body--center h1 {
+  margin: 0;
+}
+
+.pair-body--center p {
+  margin: 0;
+}
+
+/* ── Meta ── */
+
+.pair-meta {
+  background: #0f172a;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pair-meta > div {
+  display: flex;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+.pair-meta span {
+  color: #64748b;
+  min-width: 72px;
+}
+
+.pair-meta code {
+  color: #a5b4fc;
+  word-break: break-all;
+  font-size: 0.72rem;
+}
+
+/* ── Viewfinder ── */
+
+.pair-viewfinder {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  margin-bottom: 16px;
+}
+
+.pair-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pair-viewfinder-corners {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(#818cf8, #818cf8) top left / 3px 24px no-repeat,
+    linear-gradient(#818cf8, #818cf8) top left / 24px 3px no-repeat,
+    linear-gradient(#818cf8, #818cf8) top right / 3px 24px no-repeat,
+    linear-gradient(#818cf8, #818cf8) top right / 24px 3px no-repeat,
+    linear-gradient(#818cf8, #818cf8) bottom left / 3px 24px no-repeat,
+    linear-gradient(#818cf8, #818cf8) bottom left / 24px 3px no-repeat,
+    linear-gradient(#818cf8, #818cf8) bottom right / 3px 24px no-repeat,
+    linear-gradient(#818cf8, #818cf8) bottom right / 24px 3px no-repeat;
+}
+
+/* ── Manual entry ── */
+
+.pair-manual {
+  display: flex;
+  gap: 8px;
+}
+
+.pair-manual input {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.pair-manual input:focus {
+  border-color: #818cf8;
+}
+
+/* ── Buttons ── */
+
+.pair-btn {
+  padding: 11px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.pair-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pair-btn--primary {
+  background: #818cf8;
+  color: #fff;
+  width: 100%;
+}
+
+.pair-btn--primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.pair-btn--secondary {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  white-space: nowrap;
+}
+
+/* ── Spinner ── */
+
+.pair-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid #334155;
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: pair-spin 0.8s linear infinite;
+}
+
+@keyframes pair-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Success / Error icons ── */
+
+.pair-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(52, 211, 153, 0.15);
+  border: 2px solid #34d399;
+  color: #34d399;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pair-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.pair-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin: 0 0 12px;
+}
+
+.pair-hint {
+  color: #64748b;
+  font-size: 0.8rem;
+  margin: 0 0 12px;
+}
+
+/* ── bidirectional pairing: project / placement pickers ── */
+.pair-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+
+.pair-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.pair-list-item:hover,
+.pair-list-item:focus-visible {
+  border-color: #818cf8;
+  background: #131c31;
+}
+
+.pair-list-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.pair-list-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+}

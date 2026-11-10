@@ -1,0 +1,16 @@
+/*
+ * Move the status LED to P1.12 (PWM20 OUT0).
+ * Third guess -- P1.12 is the K7's RGB blue channel.
+ */
+&pwm20_default {
+	group1 {
+		psels = <NRF_PSEL(PWM_OUT0, 1, 12)>;
+	};
+};
+
+&pwm20_sleep {
+	group1 {
+		psels = <NRF_PSEL(PWM_OUT0, 1, 12)>;
+		low-power-enable;
+	};
+};

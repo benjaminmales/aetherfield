@@ -1,0 +1,13 @@
+[Unit]
+Description=AURA gateway setup-AP boot window (raise AP immediately on power-up)
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+Environment=AP_PASSWORD=aetherfield-setup
+# Path is templated to the repo by install-field-recovery.sh.
+ExecStart=/home/pi/aetherfield-platform/GATEWAY/pi-bridge/scripts/ap-fallback.sh boot
+
+[Install]
+WantedBy=multi-user.target

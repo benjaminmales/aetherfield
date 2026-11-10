@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AURA gateway bridge</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 640px;
+        margin: 24px auto;
+        padding: 0 16px;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      pre {
+        background: #1e293b;
+        padding: 12px;
+        overflow: auto;
+        border-radius: 8px;
+        font-size: 12px;
+      }
+      a {
+        color: #7dd3fc;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Gateway Pi bridge</h1>
+    <p id="device" style="margin: 0 0 8px; color: #94a3b8; font-size: 0.9rem"></p>
+    <p>
+      <a href="/devices.html">Devices</a> (live band roster) ·
+      <a href="/field-setup.html">Field setup</a> (Wi‑Fi AP + token) ·
+      <a href="/health">/health</a>
+    </p>
+    <pre id="out">Loading…</pre>
+    <script>
+      async function poll() {
+        try {
+          const r = await fetch("/api/status");
+          const j = await r.json();
+          document.getElementById("out").textContent = JSON.stringify(j, null, 2);
+        } catch (e) {
+          document.getElementById("out").textContent = String(e);
+        }
+      }
+      (function showDevice() {
+        const params = new URLSearchParams(window.location.search);
+        const device = params.get("device") || params.get("hardware_id") || params.get("hw");
+        if (!device) return;
+        document.getElementById("device").textContent = "Device ID: " + device;
+      })();
+      poll();
+      setInterval(poll, 2000);
+    </script>
+  </body>
+</html>

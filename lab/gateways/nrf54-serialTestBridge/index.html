@@ -1,0 +1,611 @@
+<!doctype html>
+<!--
+  Aetherfield serial test bridge - protocol v2
+
+  Connects to the nRF54 gateway over Web Serial and gives you a control
+  surface plus a decoded view of everything coming back.
+
+  Requires a Chromium browser (Chrome, Edge, Brave). No build step, no
+  dependencies. If file:// blocks the Web Serial prompt, serve the folder:
+      python3 -m http.server 8000
+  and open http://localhost:8000/nrf54-serialTestBridge/
+
+  Gateway must be built with the USB console (the default build) - see
+  ../nrf54-firmware/README.md. 115200 8N1.
+
+  Line formats it decodes are defined in PROTOCOL.md and emitted by
+  GATEWAY/nrf54-firmware/src/main.c.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aetherfield — Serial Test Bridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:      #000000;
+    --panel:   #0a0a0b;
+    --raise:   #101012;
+    --line:    rgba(255,255,255,0.10);
+    --line-2:  rgba(255,255,255,0.18);
+    --ink:     #ffffff;
+    --dim:     rgba(255,255,255,0.56);
+    --mute:    rgba(255,255,255,0.30);
+    --accent:  #ff6a00;
+    --accent-d:rgba(255,106,0,0.14);
+    --good:    #35d07f;
+    --bad:     #ff3b30;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin:0; padding:0; height:100%;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans); -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+  }
+  /* Pin the app to the viewport. If body is allowed to grow, the log column
+     stretches with its content, the PAGE scrolls instead of the log div, and
+     autoscroll (scrollTop on the div) silently does nothing. */
+  body { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+
+  /* ---------- header ---------- */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    gap:24px; padding:20px 28px; border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .brand { display:flex; align-items:baseline; gap:14px; min-width:0; }
+  /* Swap for a real asset when there is one:
+     <img src="assets/aetherfield-logo.svg" alt="Aetherfield" class="logo">
+     The only logo in the repo today is a cropped fragment that does not
+     read at this size, so the wordmark is set in type. */
+  .wordmark {
+    font-size:19px; font-weight:600; letter-spacing:0.34em;
+    text-transform:uppercase; white-space:nowrap;
+  }
+  .wordmark .ae { color: var(--accent); }
+  .tagline {
+    font-size:11px; letter-spacing:0.20em; text-transform:uppercase;
+    color:var(--mute); white-space:nowrap;
+  }
+  .conn { display:flex; align-items:center; gap:16px; }
+  .status { display:flex; align-items:center; gap:9px; font-size:12px;
+            letter-spacing:0.10em; text-transform:uppercase; color:var(--dim); }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--mute); }
+  .dot.on  { background:var(--good); box-shadow:0 0 10px rgba(53,208,127,.8); }
+  .dot.err { background:var(--bad); }
+
+  /* ---------- controls ---------- */
+  button, select, input {
+    font-family:inherit; font-size:13px; color:var(--ink);
+    background:var(--raise); border:1px solid var(--line);
+    padding:9px 14px; border-radius:2px; cursor:pointer;
+    transition: border-color .12s, background .12s, color .12s;
+  }
+  button:hover:not(:disabled), select:hover { border-color:var(--line-2); }
+  button:disabled { opacity:.35; cursor:not-allowed; }
+  button.primary {
+    background:var(--accent); border-color:var(--accent); color:#000;
+    font-weight:600; letter-spacing:0.06em;
+  }
+  button.primary:hover:not(:disabled) { filter:brightness(1.12); }
+  button.active { border-color:var(--accent); background:var(--accent-d); color:var(--accent); }
+  input[type=range] { padding:0; background:none; border:none; cursor:pointer; }
+  input[type=color] { padding:2px; width:46px; height:34px; }
+  input[type=text], input[type=number] { background:#000; }
+
+  main { flex:1; display:grid; grid-template-columns: 340px 1fr; min-height:0; }
+  @media (max-width: 900px) { main { grid-template-columns:1fr; } }
+
+  .col { min-width:0; min-height:0; display:flex; flex-direction:column; }
+  .col.left { border-right:1px solid var(--line); overflow-y:auto; }
+
+  section { padding:20px 22px; border-bottom:1px solid var(--line); }
+  h2 {
+    margin:0 0 14px; font-size:10px; font-weight:600; letter-spacing:0.22em;
+    text-transform:uppercase; color:var(--mute);
+  }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .field { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:11px; }
+  .field label { font-size:12px; color:var(--dim); white-space:nowrap; }
+  .field .val { font-family:var(--mono); font-size:12px; color:var(--accent); min-width:44px; text-align:right; }
+  .anim-btn { padding:9px 6px; font-size:11px; letter-spacing:0.05em; text-transform:uppercase; }
+
+  /* ---------- fleet ---------- */
+  .fleet-wrap { padding:20px 22px; border-bottom:1px solid var(--line); }
+  table { width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12px; }
+  th {
+    text-align:left; font-family:var(--sans); font-size:10px; font-weight:600;
+    letter-spacing:0.16em; text-transform:uppercase; color:var(--mute);
+    padding:0 10px 9px 0; border-bottom:1px solid var(--line); white-space:nowrap;
+  }
+  td { padding:9px 10px 9px 0; border-bottom:1px solid rgba(255,255,255,0.05); white-space:nowrap; }
+  td.addr { color:var(--accent); }
+  tr.stale td { color:var(--mute); }
+  .empty { color:var(--mute); font-family:var(--sans); font-size:13px; padding:14px 0; }
+  .delivery { display:flex; align-items:baseline; gap:10px; margin-top:14px; }
+  .delivery .big { font-family:var(--mono); font-size:26px; color:var(--accent); line-height:1; }
+  .delivery .lbl { font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--mute); }
+  .bar { height:2px; background:rgba(255,255,255,0.08); margin-top:10px; }
+  .bar > i { display:block; height:100%; background:var(--accent); width:0; transition:width .25s; }
+
+  /* ---------- log ---------- */
+  .log-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 22px 12px; }
+  .log {
+    flex:1; overflow-y:auto; padding:0 22px 20px;
+    font-family:var(--mono); font-size:12px; line-height:1.65;
+  }
+  .log div { white-space:pre-wrap; word-break:break-all; }
+  .log .rx  { color:var(--ink); }
+  .log .tx  { color:var(--accent); }
+  .log .sys { color:var(--mute); }
+  .log .err { color:var(--bad); }
+  .log .t   { color:var(--mute); }
+  .pill {
+    font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    padding:5px 10px; border:1px solid var(--line); border-radius:2px;
+    color:var(--dim); background:none;
+  }
+  .pill.on { border-color:var(--accent); color:var(--accent); }
+  .hint { color:var(--mute); font-size:12px; line-height:1.6; }
+  code { font-family:var(--mono); color:var(--dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="wordmark"><span class="ae">Æ</span>therfield</div>
+    <div class="tagline">Serial Test Bridge · v2</div>
+  </div>
+  <div class="conn">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Disconnected</span></div>
+    <button class="primary" id="connectBtn">Connect</button>
+  </div>
+</header>
+
+<main>
+  <!-- ================= controls ================= -->
+  <div class="col left">
+
+    <section>
+      <h2>Animation</h2>
+      <div class="grid4" id="animGrid"></div>
+      <div style="height:16px"></div>
+      <div class="field">
+        <label for="colour">Colour</label>
+        <input type="color" id="colour" value="#ff6a00" />
+      </div>
+      <div class="field">
+        <label for="bright">Brightness</label>
+        <input type="range" id="bright" min="0" max="255" value="200" style="flex:1" />
+        <span class="val" id="brightVal">200</span>
+      </div>
+      <div class="field">
+        <label for="rate">Period</label>
+        <input type="range" id="rate" min="0" max="255" value="100" style="flex:1" />
+        <span class="val" id="rateVal">1.00s</span>
+      </div>
+      <button class="primary" id="sendAnim" style="width:100%">Send</button>
+    </section>
+
+    <section>
+      <h2>Group</h2>
+      <div class="grid4" id="groupGrid"></div>
+      <p class="hint" style="margin:12px 0 0">
+        A mask, not an index — <code>03</code> addresses wristband and pixel together.
+      </p>
+    </section>
+
+    <section>
+      <h2>Operational mode</h2>
+      <div class="grid2" id="opGrid"></div>
+      <div style="height:10px"></div>
+      <div class="field">
+        <label for="opParam">Parameter</label>
+        <input type="number" id="opParam" value="0" min="-128" max="255" style="width:80px" />
+      </div>
+      <p class="hint" id="opHint">Listen-only takes fleet uplink to zero — the main capacity control.</p>
+    </section>
+
+    <section>
+      <h2>Direct</h2>
+      <div class="row">
+        <input type="text" id="cmdLine" placeholder="aura fleet" style="flex:1; min-width:0" />
+        <button id="sendCmd">Send</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnFleet">fleet</button>
+        <button id="btnInfo">info</button>
+        <button id="btnStats">stats</button>
+        <button id="btnSync">sync</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= telemetry ================= -->
+  <div class="col">
+    <div class="fleet-wrap">
+      <h2>Fleet</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Addr</th><th>Caps</th><th>Batt</th><th>RSSI</th>
+            <th>Node</th><th>Cmd seq</th><th>Flags</th><th>Age</th>
+          </tr>
+        </thead>
+        <tbody id="fleetBody"></tbody>
+      </table>
+      <div class="empty" id="fleetEmpty">No devices heard yet.</div>
+      <p class="hint" style="margin:10px 0 0">Click a row to send it a unicast <code>IDENTIFY</code>.</p>
+      <div class="delivery">
+        <span class="big" id="delivery">—</span>
+        <span class="lbl">current at cmd seq <span id="curSeq">—</span></span>
+      </div>
+      <div class="bar"><i id="deliveryBar"></i></div>
+    </div>
+
+    <div class="log-head">
+      <h2 style="margin:0">Traffic</h2>
+      <div class="row">
+        <button class="pill on" id="fRx">RX</button>
+        <button class="pill on" id="fTx">TX</button>
+        <button class="pill on" id="fSys">System</button>
+        <button class="pill" id="fRaw">Raw/undecoded</button>
+        <button class="pill on" id="fAuto">Autoscroll</button>
+        <button class="pill" id="clearLog">Clear</button>
+      </div>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+/* ============================================================
+ * Protocol tables — mirror include/aura_radio.h.
+ * If they drift, the header wins.
+ * ============================================================ */
+
+const ANIM = [
+  ["OFF",0],["STEADY",1],["FLASH",2],["PULSE",3],
+  ["HEART",4],["RAMP",5],["STROBE",6],["RAINBOW",7],
+];
+
+const OPS = [
+  ["Normal",       "live",     "Listen and beacon at the default cadence."],
+  ["Listen only",  "show",     "Zero uplink. Downlink cost is flat with crowd size; uplink is not — this is the capacity control."],
+  ["Roll call",    "rollcall", "Census in address-derived slots. Parameter is the window ÷100 ms."],
+  ["Social",       "social",   "Proximity detection. Parameter is the RSSI threshold in dBm (e.g. -60)."],
+  ["Low power",    "op 4",     "Slow beacon, brightness capped. Parameter is the period in seconds."],
+  ["Sleep",        "sleep",    "Duty-cycled — never unbounded. Parameter is seconds off between receive windows."],
+];
+
+const CAP_BITS = ["RGB_LED","HP_LED","IMU","ACCEL","MIC","BUTTON","NFC","MULTI_LED"];
+const FLAG_BITS = ["charging","low-batt","hand","clap","button"];
+
+function decodeBits(v, names) {
+  const out = [];
+  for (let i = 0; i < names.length; i++) if (v & (1 << i)) out.push(names[i]);
+  return out;
+}
+
+/* ============================================================
+ * Serial
+ * ============================================================ */
+
+let port = null, reader = null, writer = null, keepReading = false;
+let rxBuf = "";
+
+const $ = id => document.getElementById(id);
+const dot = $("dot"), statusText = $("statusText"), connectBtn = $("connectBtn");
+
+function setStatus(state, text) {
+  dot.className = "dot" + (state === "on" ? " on" : state === "err" ? " err" : "");
+  statusText.textContent = text;
+  connectBtn.textContent = state === "on" ? "Disconnect" : "Connect";
+}
+
+async function connect() {
+  if (!("serial" in navigator)) {
+    log("Web Serial unavailable — use Chrome, Edge or Brave.", "err");
+    setStatus("err", "Unsupported");
+    return;
+  }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    writer = port.writable.getWriter();
+    keepReading = true;
+    setStatus("on", "Connected");
+    log("Connected at 115200 8N1.", "sys");
+    readLoop();
+  } catch (e) {
+    if (e && e.name === "NotFoundError") { log("No port selected.", "sys"); return; }
+    log("Connect failed: " + e, "err");
+    setStatus("err", "Error");
+  }
+}
+
+async function disconnect() {
+  keepReading = false;
+  try { if (reader) { await reader.cancel(); reader.releaseLock(); reader = null; } } catch (e) {}
+  try { if (writer) { writer.releaseLock(); writer = null; } } catch (e) {}
+  try { if (port) { await port.close(); port = null; } } catch (e) {}
+  setStatus("off", "Disconnected");
+  log("Disconnected.", "sys");
+}
+
+async function readLoop() {
+  const dec = new TextDecoder();
+  try {
+    reader = port.readable.getReader();
+    while (keepReading) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      rxBuf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = rxBuf.search(/[\r\n]/)) >= 0) {
+        const line = rxBuf.slice(0, i);
+        rxBuf = rxBuf.slice(i + 1);
+        if (line.trim()) handleLine(line);
+      }
+    }
+  } catch (e) {
+    if (keepReading) log("Read error: " + e, "err");
+  } finally {
+    try { if (reader) reader.releaseLock(); } catch (e) {}
+    reader = null;
+  }
+}
+
+async function send(cmd) {
+  if (!writer) { log("Not connected.", "err"); return; }
+  log("$ " + cmd, "tx");
+  await writer.write(new TextEncoder().encode(cmd + "\r"));
+}
+
+/* ============================================================
+ * Line handling
+ *
+ * The firmware sets CONFIG_SHELL_VT100_COMMANDS=n, but strip escapes
+ * anyway: an older build, or a shell redraw, will otherwise inject
+ * \x1b[8D\x1b[J into the middle of a telemetry line.
+ * ============================================================ */
+
+const ANSI = /\x1b\[[0-9;?]*[a-zA-Z]/g;
+
+function kv(line) {
+  const o = {};
+  for (const tok of line.split(/\s+/)) {
+    const eq = tok.indexOf("=");
+    if (eq > 0) o[tok.slice(0, eq)] = tok.slice(eq + 1);
+  }
+  return o;
+}
+
+const fleet = new Map();
+let curCmdSeq = null;
+
+function handleLine(raw) {
+  const line = raw.replace(ANSI, "").replace(/uart:~\$\s?/g, "").trim();
+  if (!line) return;
+
+  if (line.startsWith("<BCN")) {
+    const f = kv(line);
+    const addr = f.a;
+    const prev = fleet.get(addr) || { beacons: 0 };
+    fleet.set(addr, {
+      addr,
+      caps: parseInt(f.caps, 16),
+      batt: parseInt(f.batt, 10),
+      flags: parseInt(f.fl, 16),
+      cseq: parseInt(f.cseq, 10),
+      rssi: parseInt(f.r, 10),
+      node: parseInt(f.n, 10),
+      seen: Date.now(),
+      beacons: prev.beacons + 1,
+    });
+    renderFleet();
+    log(line, "rx");
+    return;
+  }
+
+  if (line.startsWith("<EVT") || line.startsWith("<CON") || line.startsWith("<V0")) {
+    log(line, "rx"); return;
+  }
+  if (line.startsWith(">CMD")) {
+    const f = kv(line);
+    if (f.seq !== undefined) { curCmdSeq = parseInt(f.seq, 10); renderFleet(); }
+    log(line, "tx"); return;
+  }
+  if (line.startsWith(">SYNC") || line.startsWith(">READY") || line.startsWith(">HOP")) {
+    log(line, "tx"); return;
+  }
+  if (line.startsWith("<WARN") || line.startsWith("<INFO")) { log(line, "sys"); return; }
+  if (line.startsWith("<RAW")) { log(line, "raw"); return; }
+  if (line.startsWith("NODE:")) { log(line, "raw"); return; }  // legacy pi-bridge line
+  log(line, "sys");
+}
+
+/* ============================================================
+ * Fleet table
+ * ============================================================ */
+
+function renderFleet() {
+  const body = $("fleetBody"), now = Date.now();
+  const rows = [...fleet.values()].sort((a, b) => a.addr.localeCompare(b.addr));
+  $("fleetEmpty").style.display = rows.length ? "none" : "block";
+  body.innerHTML = "";
+
+  let current = 0;
+  for (const d of rows) {
+    const age = Math.round((now - d.seen) / 1000);
+    if (age > 120) { fleet.delete(d.addr); continue; }
+    if (curCmdSeq !== null && d.cseq === curCmdSeq) current++;
+    const tr = document.createElement("tr");
+    if (age > 10) tr.className = "stale";
+    const caps = decodeBits(d.caps, CAP_BITS);
+    const flags = decodeBits(d.flags, FLAG_BITS);
+    tr.title = "Click to send IDENTIFY to " + d.addr;
+    tr.style.cursor = "pointer";
+    tr.onclick = () => send("aura identify " + d.addr);
+    tr.innerHTML =
+      '<td class="addr">' + d.addr + "</td>" +
+      "<td>" + (caps.length ? caps.join(" ") : "—") + "</td>" +
+      "<td>" + (d.batt === 255 ? "—" : d.batt + "%") + "</td>" +
+      "<td>" + d.rssi + "</td>" +
+      "<td>" + (d.node ? d.node : "direct") + "</td>" +
+      "<td>" + d.cseq + "</td>" +
+      "<td>" + (flags.length ? flags.join(" ") : "—") + "</td>" +
+      "<td>" + age + "s</td>";
+    body.appendChild(tr);
+  }
+
+  $("curSeq").textContent = curCmdSeq === null ? "—" : curCmdSeq;
+  if (!rows.length || curCmdSeq === null) {
+    $("delivery").textContent = "—";
+    $("deliveryBar").style.width = "0";
+  } else {
+    const pct = Math.round((100 * current) / rows.length);
+    $("delivery").textContent = pct + "%";
+    $("deliveryBar").style.width = pct + "%";
+  }
+}
+setInterval(renderFleet, 1000);
+
+/* ============================================================
+ * Log
+ * ============================================================ */
+
+const filters = { rx: true, tx: true, sys: true, raw: false };
+let autoscroll = true;
+
+function log(text, kind) {
+  const cls = kind === "raw" ? "sys" : kind;
+  const el = document.createElement("div");
+  el.className = cls;
+  el.dataset.kind = kind;
+  const t = new Date().toTimeString().slice(0, 8);
+  el.innerHTML = '<span class="t">' + t + "  </span>" + escapeHtml(text);
+  el.style.display = visible(kind) ? "" : "none";
+  const box = $("log");
+  box.appendChild(el);
+  while (box.childElementCount > 800) box.removeChild(box.firstChild);
+  if (autoscroll) box.scrollTop = box.scrollHeight;
+}
+function visible(kind) {
+  if (kind === "raw") return filters.raw;
+  if (kind === "err") return true;
+  return filters[kind] !== false;
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+function refilter() {
+  for (const el of $("log").children) el.style.display = visible(el.dataset.kind) ? "" : "none";
+}
+function bindFilter(id, key) {
+  $(id).onclick = () => {
+    filters[key] = !filters[key];
+    $(id).classList.toggle("on", filters[key]);
+    refilter();
+  };
+}
+bindFilter("fRx", "rx"); bindFilter("fTx", "tx");
+bindFilter("fSys", "sys"); bindFilter("fRaw", "raw");
+$("fAuto").onclick = () => { autoscroll = !autoscroll; $("fAuto").classList.toggle("on", autoscroll); };
+$("clearLog").onclick = () => { $("log").innerHTML = ""; };
+
+/* ============================================================
+ * Control surface
+ * ============================================================ */
+
+let animMode = 1, group = 0;
+
+const animGrid = $("animGrid");
+ANIM.forEach(([name, v]) => {
+  const b = document.createElement("button");
+  b.className = "anim-btn" + (v === animMode ? " active" : "");
+  b.textContent = name;
+  b.onclick = () => {
+    animMode = v;
+    [...animGrid.children].forEach(c => c.classList.remove("active"));
+    b.classList.add("active");
+    sendAnim();
+  };
+  animGrid.appendChild(b);
+});
+
+const groupGrid = $("groupGrid");
+[["All", 0], ["01", 1], ["02", 2], ["03", 3]].forEach(([name, v]) => {
+  const b = document.createElement("button");
+  b.className = "anim-btn" + (v === group ? " active" : "");
+  b.textContent = name;
+  b.onclick = () => {
+    group = v;
+    [...groupGrid.children].forEach(c => c.classList.remove("active"));
+    b.classList.add("active");
+    send("aura group " + v);
+  };
+  groupGrid.appendChild(b);
+});
+
+const opGrid = $("opGrid");
+OPS.forEach(([name, cmd, hint]) => {
+  const b = document.createElement("button");
+  b.className = "anim-btn";
+  b.textContent = name;
+  b.onclick = () => {
+    [...opGrid.children].forEach(c => c.classList.remove("active"));
+    b.classList.add("active");
+    $("opHint").textContent = hint;
+    const p = $("opParam").value;
+    if (cmd === "rollcall" || cmd === "sleep" || cmd === "social") send("aura " + cmd + " " + p);
+    else if (cmd === "op 4") send("aura op 4 " + p);
+    else send("aura " + cmd);
+  };
+  opGrid.appendChild(b);
+});
+
+function rgb() {
+  const h = $("colour").value;
+  return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+}
+function sendAnim() {
+  const [r, g, b] = rgb();
+  send("aura anim " + animMode + " " + $("rate").value + " " + r + " " + g + " " + b + " " + $("bright").value);
+}
+
+$("bright").oninput = e => { $("brightVal").textContent = e.target.value; };
+$("bright").onchange = sendAnim;
+$("rate").oninput = e => {
+  const v = +e.target.value;
+  $("rateVal").textContent = (v === 0 ? 1.0 : v / 100).toFixed(2) + "s";
+};
+$("rate").onchange = sendAnim;
+$("colour").onchange = sendAnim;
+$("sendAnim").onclick = sendAnim;
+
+$("sendCmd").onclick = () => { const v = $("cmdLine").value.trim(); if (v) send(v); };
+$("cmdLine").onkeydown = e => { if (e.key === "Enter") $("sendCmd").click(); };
+$("btnFleet").onclick = () => send("aura fleet");
+$("btnInfo").onclick  = () => send("info");
+$("btnStats").onclick = () => send("stats");
+$("btnSync").onclick  = () => send("sync");
+
+connectBtn.onclick = () => (port ? disconnect() : connect());
+$("rate").oninput({ target: $("rate") });
+setStatus("off", "Disconnected");
+log("Aetherfield serial test bridge — protocol v2. Connect to begin.", "sys");
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+/*
+ * holyiot_25008_nrf54l15_nrf54l15_cpuapp.overlay
+ *
+ * High-brightness blue LED modification for HOLYIOT-25008 V1.0.
+ *
+ * Hardware this assumes (see the board mod spec):
+ *   - S1 removed; the KEY net now drives Q2's gate
+ *   - R2 re-routed from pull-up-to-VDD to pull-down-to-GND (10k)
+ *   - LED2 anode on VBAT, cathode to Q2 drain, Q2 source to GND
+ *
+ * KEY is pin 41 of U1 = P1.13. Not P1.11 — an earlier revision of this file
+ * said P1.11 and the LED simply never lit, because P1.11 is not brought out
+ * to anything on this module. Check the schematic, not the comment.
+ *
+ * Why the KEY pin and not the RGB's blue: the nRF54L15's PWM peripherals are
+ * LP-domain and cannot drive P2 (MCU-domain) pins, so the onboard blue on
+ * P2.07 is on/off only. P1.13 is LP-domain, so pwm20 reaches it and we get
+ * real brightness control. P1.10 (green) is already on pwm20 OUT0, so putting
+ * the HB blue on OUT1 of the same peripheral shares one timebase.
+ */
+
+/* ---------------------------------------------------------------------
+ * S1 is gone on modified boards. Disable the gpio-keys node so the input
+ * subsystem does not configure the KEY pin as an input behind pinctrl's back.
+ *
+ * Disabled rather than /delete-node/ on purpose: the board's aliases (sw0,
+ * buttons) still point here, and an alias to a disabled node is legal,
+ * whereas an alias to a deleted one is a dangling phandle and a build error.
+ * --------------------------------------------------------------------- */
+&buttons {
+	status = "disabled";
+};
+
+/* ---------------------------------------------------------------------
+ * Add PWM channel 1 on P1.13, alongside the existing green on P1.10.
+ * Both states must list both channels or the pin reverts on sleep.
+ * --------------------------------------------------------------------- */
+&pwm20_default {
+	group1 {
+		psels = <NRF_PSEL(PWM_OUT0, 1, 10)>,   /* RGB green, unchanged */
+			<NRF_PSEL(PWM_OUT1, 1, 13)>;   /* HB blue, was S1/KEY  */
+	};
+};
+
+&pwm20_sleep {
+	group1 {
+		psels = <NRF_PSEL(PWM_OUT0, 1, 10)>,
+			<NRF_PSEL(PWM_OUT1, 1, 13)>;
+		low-power-enable;
+	};
+};
+
+/* ---------------------------------------------------------------------
+ * The LED itself, added to the board's existing pwm-leds node.
+ *
+ * PWM_POLARITY_NORMAL, note — the opposite of the RGB beside it. The RGB is
+ * common-anode and sinks through the MCU, so it is active-low; LED2 switches
+ * on the low side through an N-FET, so a high gate means light.
+ *
+ * 20 ms period = 50 Hz. Keep the duty LOW: see the warning below.
+ * --------------------------------------------------------------------- */
+&rgb_led {
+	led_hb: led_hb {
+		pwms = <&pwm20 1 PWM_USEC(250) PWM_POLARITY_NORMAL>;
+		label = "HB Blue";
+	};
+};
+
+/ {
+	aliases {
+		led-hb = &led_hb;
+	};
+};
+
+/*
+ * ---------------------------------------------------------------------
+ * DUTY CYCLE WARNING
+ * ---------------------------------------------------------------------
+ * This LED is a 350 mA part being run at a fraction of that, and nothing in
+ * the circuit sets its current except the reservoir cap's ESR and the cell's
+ * internal resistance. There is no series resistor.
+ *
+ * With C19 fitted, short pulses draw from the cap and are self-limiting.
+ * WITHOUT C19, or from a stiff bench supply, the only limit is the supply
+ * itself — so use the coin cell (its own internal resistance holds you to
+ * roughly 10 mA) or a bench supply with the current limit set to 100 mA.
+ */

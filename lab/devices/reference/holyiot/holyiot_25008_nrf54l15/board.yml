@@ -1,0 +1,6 @@
+board:
+  name: holyiot_25008_nrf54l15
+  full_name: Holyiot 25008 nRF54L15 Module
+  vendor: holyiot
+  socs:
+    - name: nrf54l15

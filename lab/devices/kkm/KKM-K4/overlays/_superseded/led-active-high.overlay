@@ -1,0 +1,13 @@
+/*
+ * Flip the LED drive polarity to active-high (common-cathode part: cathode to
+ * GND, driven high to light).
+ *
+ * Symptom that you need this: the LED breathes inside-out -- it is brightest
+ * where the pattern should be dark, and the three boot flashes read as three
+ * dark gaps in a lit LED.
+ */
+#include <zephyr/dt-bindings/pwm/pwm.h>
+
+&led_status {
+	pwms = <&pwm20 0 PWM_USEC(1000) PWM_POLARITY_NORMAL>;
+};

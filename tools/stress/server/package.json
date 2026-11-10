@@ -1,0 +1,17 @@
+{
+  "name": "aetherfield-stress",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scale rehearsal: dedupes multi-gateway reception, measures delivery rate against a known fleet, and estimates rough positions from RSSI.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node lib/sightings.test.js && node lib/position.test.js && node lib/rates.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
+  }
+}

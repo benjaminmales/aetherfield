@@ -1,0 +1,36 @@
+{
+  "venue": {
+    "name": "Bench",
+    "width": 40,
+    "height": 30,
+    "units": "m"
+  },
+  "gateways": {
+    "gw-01": {
+      "x": 4,
+      "y": 4
+    },
+    "gw-02": {
+      "x": 36,
+      "y": 4
+    },
+    "gw-03": {
+      "x": 20,
+      "y": 26
+    }
+  },
+  "model": {
+    "refRssi": -42,
+    "pathLossExp": 2.7,
+    "maxDistance": 120
+  },
+  "expected": {
+    "blocks": 20,
+    "perBlock": 150,
+    "base": 4096,
+    "beaconIntervalMs": 10000,
+    "presenceWindowMs": 7500
+  },
+  "dedupeMs": 250,
+  "onlineMs": 30000
+}

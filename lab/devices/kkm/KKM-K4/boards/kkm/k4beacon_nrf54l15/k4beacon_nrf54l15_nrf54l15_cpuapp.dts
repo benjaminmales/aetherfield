@@ -1,0 +1,142 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * KKM K4 Beacon, nRF54L15 (QFAA die, 1.5 MB RRAM / 256 kB RAM).
+ *
+ * Built from the schematic K4_nRF54L15_SCH V1.1 (2026-09-11). The earlier
+ * revision of this file was inferred from the K7 and was wrong about the LED
+ * port, the LED polarity, the button pin and the UART instance. Nothing here
+ * is a guess any more except where it says so.
+ */
+
+/dts-v1/;
+#include <nordic/nrf54l15_cpuapp.dtsi>
+#include "k4beacon_nrf54l15_common.dtsi"
+
+/ {
+	model = "KKM K4 Beacon nRF54L15";
+	compatible = "kkm,k4beacon-nrf54l15-cpuapp";
+
+	chosen {
+		zephyr,sram = &cpuapp_sram;
+		zephyr,flash = &cpuapp_rram;
+		zephyr,flash-controller = &rram_controller;
+		zephyr,console = &uart30;
+		zephyr,shell-uart = &uart30;
+		zephyr,ieee802154 = &ieee802154;
+	};
+};
+
+&cpuapp_sram {
+	status = "okay";
+};
+
+&grtc {
+	owned-channels = <0 1 2 3 4 5 6 7 8 9 10 11>;
+	/* Channels 7-11 reserved for Zero Latency IRQs, 3-4 for FLPR */
+	child-owned-channels = <3 4 7 8 9 10 11>;
+	status = "okay";
+};
+
+&clock {
+	status = "okay";
+};
+
+&pwm20 {
+	status = "okay";
+};
+
+/* Console on the RXD / TXD test points, P0.00 / P0.01.
+ * UART30, not UART20: P0 is the low-power domain and only the "30"
+ * instances reach it. This board's first real console. */
+&uart30 {
+	status = "okay";
+};
+
+/* LIS2DW12 bus. The sensor node itself is disabled until someone needs it. */
+&i2c21 {
+	status = "okay";
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&gpio2 {
+	status = "okay";
+};
+
+&gpiote20 {
+	status = "okay";
+};
+
+&gpiote30 {
+	status = "okay";
+};
+
+&regulators {
+	status = "okay";
+};
+
+/*
+ * DCDC, not LDO. CONFIRMED: L3 = 4.7 uH is populated on the DCC pin with
+ * C3 2.2 uF, so the buck is a real option on this board and costs less
+ * current than the LDO. Earlier revisions of this file kept LDO only because
+ * the inductor could not be verified.
+ */
+&vregmain {
+	status = "okay";
+	regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
+};
+
+/*
+ * HFXO: 32 MHz / 8 pF / +/-10 ppm (X2), no discrete load caps.
+ * The 8000 fF internal setting was a guess carried over from the K7 and the
+ * schematic confirms it -- it is why the radio worked first time.
+ */
+&hfxo {
+	load-capacitors = "internal";
+	load-capacitance-femtofarad = <8000>;
+	status = "okay";
+};
+
+/*
+ * LFXO: X1 = 32.768 kHz / 7 pF / +/-20 ppm IS FITTED, on P1.00/XL1 and
+ * P1.01/XL2. Still left DISABLED here, deliberately, for one reason: the
+ * correct value for load-capacitance-femtofarad is not settled.
+ *
+ * KKM's own reference overlay says 14000 (2x the crystal's 7 pF CL), which
+ * matches how Nordic's own boards set this property -- the nRF54L15-DK uses
+ * 15500 for a crystal whose CL is nothing like that, so the property is the
+ * internal capacitor value, not the crystal spec. Our K7 board uses 7000 for
+ * a 7 pF crystal, which by that reading is wrong and worth re-checking there.
+ *
+ * Calibrated LFRC (~250 ppm) is running today and is fine for beaconing. Move
+ * to the crystal with overlays/lfxo.overlay when SYNC accuracy starts to
+ * matter -- one change, one test.
+ */
+&lfxo {
+	status = "disabled";
+};
+
+&ieee802154 {
+	status = "okay";
+};
+
+&radio {
+	status = "okay";
+};
+
+&temp {
+	status = "okay";
+};
+
+/*
+ * No MCUboot / fixed-partition table: the application links to the base of
+ * cpuapp_rram and boots directly after a J-Link flash.
+ */

@@ -1,0 +1,18 @@
+{
+  "idf.currentSetup": "/Users/benjaminmales/.espressif/v5.5.4/esp-idf",
+  "idf.openOcdConfigs": [
+    "board/esp32c6-builtin.cfg"
+  ],
+  "idf.customExtraVars": {
+    "OPENOCD_USB_ADAPTER_LOCATION": "2",
+    "IDF_TARGET": "esp32c6"
+  },
+  "clangd.path": "/Users/benjaminmales/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=/Users/benjaminmales/aetherfield-platform/AURA/Waveshield ESP32-C6/IMU-visualiser/build"
+  ],
+  "idf.flashType": "UART",
+  "idf.port": "/dev/tty.usbmodem2101"
+}

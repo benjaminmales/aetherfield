@@ -1,0 +1,13 @@
+/*
+ * Use EXTERNAL (discrete) HFXO load capacitors instead of the SoC's internal
+ * ones.
+ *
+ * Try this FIRST if the gateway hears nothing from the K4. If the board fits
+ * its own load caps, the internal caps add to them, the 32 MHz crystal runs
+ * over-loaded and off-frequency, and the radio goes deaf and mute without any
+ * other symptom -- which looks exactly like a protocol bug and is not one.
+ */
+&hfxo {
+	load-capacitors = "external";
+	/delete-property/ load-capacitance-femtofarad;
+};

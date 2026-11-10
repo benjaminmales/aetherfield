@@ -1,0 +1,68 @@
+#!/bin/sh
+#
+# Aetherfield pre-commit guard.
+#
+# Blocks three things:
+#   1. Embedded git repos  -> git silently commits them as mode 160000 gitlinks.
+#      The contents never reach the remote; a fresh clone gets an empty folder.
+#      VS Code's "Initialize Repository" button creates these by accident.
+#   2. Obvious hardcoded credentials.
+#   3. Production code reaching into lab/ (scripts/check-cordon.sh).
+#
+# Bypass with --no-verify only if you are certain. Installed via:
+#   git config core.hooksPath .githooks
+
+set -e
+fail=0
+
+# --- 1. embedded git repositories -------------------------------------------
+embedded=$(find . -mindepth 2 -name .git \
+             -not -path "./node_modules/*" \
+             -not -path "*/build/*" 2>/dev/null || true)
+
+if [ -n "$embedded" ]; then
+  echo "BLOCKED: embedded git repository found."
+  echo
+  echo "$embedded" | sed 's|/\.git$||' | sed 's/^/  /'
+  echo
+  echo "  Git would commit these as submodule pointers (mode 160000), not files."
+  echo "  Their contents would NOT be pushed and a fresh clone would find them empty."
+  echo
+  echo "  To fold one into this repo:"
+  echo "    tar czf ~/\$(basename <dir>)-git-history.tgz -C <dir> .git"
+  echo "    git rm --cached <dir>"
+  echo "    rm -rf <dir>/.git"
+  echo "    git add <dir>"
+  echo
+  echo "  If it genuinely should stay a separate repo, add it to .gitignore."
+  fail=1
+fi
+
+# --- 2. credential patterns in staged content -------------------------------
+# .githooks/ is excluded: this file necessarily contains the very patterns it
+# searches for, so scanning it always self-matches.
+# Generated and binary-ish formats are skipped: firmware images (.hex/.bin),
+# KiCad files and PDFs/STEP embed long encoded blobs that look like keys and
+# never contain real ones. Without this every hardware commit is blocked.
+staged=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null \
+  | grep -v '^\.githooks/' \
+  | grep -vE '\.(hex|bin|elf|uf2|zip|kicad_sch|kicad_pcb|kicad_sym|kicad_mod|kicad_pro|kicad_prl|step|stp|3mf|pdf|png|jpg|jpeg|svg|wrl)$' \
+  | grep -vE '(^|/)package-lock\.json$' || true)
+if [ -n "$staged" ]; then
+  hits=$(echo "$staged" | tr '\n' '\0' \
+    | xargs -0 grep -IlE "(eyJ[A-Za-z0-9_-]{20,}|sk-ant-[A-Za-z0-9_-]{10,}|SUPABASE_SERVICE_ROLE_KEY=[^ <\"$]{20,}|AC[0-9a-f]{32}|SG\.[A-Za-z0-9_-]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY)" 2>/dev/null || true)
+  if [ -n "$hits" ]; then
+    echo "BLOCKED: possible credential in staged files."
+    echo "$hits" | sed 's/^/  /'
+    echo
+    echo "  Move it to an environment variable. If this is a false positive,"
+    echo "  commit with --no-verify."
+    fail=1
+  fi
+fi
+
+# --- 3. the cordon -------------------------------------------------------
+sh scripts/check-cordon.sh >/dev/null || { sh scripts/check-cordon.sh; fail=1; }
+
+[ "$fail" -eq 0 ] || { echo "Commit aborted."; exit 1; }
+exit 0

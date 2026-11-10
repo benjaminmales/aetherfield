@@ -1,0 +1,88 @@
+/*
+ * Aetherfield Pixel gateway — Seeed XIAO nRF54LM20A on the Seeed XIAO W5500
+ * Ethernet Adapter.
+ *
+ * The adapter's wiring is fixed, so there is nothing to choose here:
+ *
+ *   W5500 SCK   D8    P1.04   |
+ *   W5500 MISO  D9    P1.05   |  spi23, the XIAO SPI header
+ *   W5500 MOSI  D10   P1.06   |
+ *   W5500 CS    D1    P1.31
+ *   W5500 INT   not routed    the driver polls, so this costs us nothing
+ *   W5500 RST   not routed    software reset (MR bit 7) brings the chip up
+ *
+ * Power comes from the adapter — PoE stepped down by its TPS563201, or its own
+ * USB-C — so the earlier warning about not feeding the breakout from the
+ * XIAO's 3V3 regulator no longer applies.
+ *
+ * For a hand-wired build instead of this adapter, CS/INT/RST were on D0/D1/D2
+ * (P1.00 / P1.31 / P1.30); add int-gpios and reset-gpios back and the driver
+ * will use the hard reset.
+ *
+ * Note spi23, not spi00. On this board the XIAO SPI header is spi23, aliased
+ * xiao_spi; spi00 is a different instance and is not brought out.
+ *
+ * D6/D7 are left alone so uart21 stays available as a second console. The
+ * board already chooses uart20 (bridged to USB-C by the onboard SAMD11) for
+ * console and shell, and already sets zephyr,ieee802154 — so neither needs
+ * declaring here.
+ */
+
+&xiao_spi {
+	status = "okay";
+
+	/* The adapter ties CS to D1. This is the whole list; the W5500 is
+	 * entry 0. */
+	cs-gpios = <&gpio1 31 GPIO_ACTIVE_LOW>;   /* D1 */
+
+	w5500: w5500@0 {
+		compatible = "aetherfield,w5500-raw";
+		reg = <0>;
+		/* 16 MHz. The part will do far more, but leave margin for a
+		 * stacked carrier board. */
+		spi-max-frequency = <16000000>;
+
+		/* No int-gpios: INT is not routed on this adapter, and the
+		 * driver polls anyway.
+		 * No reset-gpios: RSTn is not routed either, so w5500_init()
+		 * uses the chip's software reset. */
+	};
+};
+
+/*
+ * Native USB off.
+ *
+ * Disable the WRAPPER, not just the device. The SoC devicetree nests them:
+ *
+ *   usbhs_wrapper@5a000   compatible "nordic,nrf-usbhs-wrapper"
+ *     regulator = <&vregusb>
+ *     usbhs@20000         compatible "nordic,nrf-usbhs-nrf54l", aliased
+ *                         zephyr_udc0, which is what the board turns on
+ *
+ * Disabling only the inner usbhs leaves the wrapper enabled by default, and
+ * the wrapper's driver does DEVICE_DT_GET on its `regulator` phandle. With no
+ * USB stack in the build the VREGUSB device is never instantiated, so the
+ * reference does not resolve and the build dies with
+ * '__device_dts_ord_162 undeclared' — which reads like devicetree corruption
+ * and is really an unused driver reaching for a device that isn't there.
+ *
+ * We have no use for native USB: the console reaches USB-C through the onboard
+ * SAMD11 on uart20, and the server link is Ethernet.
+ */
+&usbhs_wrapper {
+	status = "disabled";
+};
+
+&usbhs {
+	status = "disabled";
+};
+
+/*
+ * The board's IMU is not fitted on the plain (non-Sense) XIAO, so its driver
+ * fails at boot with "LSM6DSL: Failed to initialize chip". Harmless, but an
+ * error line on every boot of event infrastructure trains people to ignore
+ * error lines. The gateway has no use for an IMU either way.
+ */
+&lsm6ds3tr_c {
+	status = "disabled";
+};

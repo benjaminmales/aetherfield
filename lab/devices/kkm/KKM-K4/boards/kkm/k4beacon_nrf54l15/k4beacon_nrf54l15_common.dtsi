@@ -1,0 +1,93 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "k4beacon_nrf54l15-pinctrl.dtsi"
+#include <zephyr/dt-bindings/pwm/pwm.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	/*
+	 * Two single-colour RED LEDs, both ACTIVE HIGH (1 k series resistor
+	 * into the anode, cathode to GND). PWM_POLARITY_NORMAL: duty 0 % off,
+	 * 100 % full.
+	 *
+	 * Brightness ceiling, worth knowing before designing any animation:
+	 * 1 k from a ~3.0 V cell with a red Vf of ~1.9 V is about 1.1 mA. That
+	 * is an indicator, not an illuminator -- the same concession the
+	 * Holyiot 25008 makes with its 1 k RGB resistors. It is also why a
+	 * whole GPIO sweep could flash these without anyone noticing.
+	 *
+	 * 1 kHz period: flicker-free on camera, and 16 MHz / 1 kHz = 16000
+	 * counts, under the nRF PWM COUNTERTOP limit of 32767.
+	 */
+	pwmleds: pwmleds {
+		compatible = "pwm-leds";
+
+		led_d1: led_d1 {
+			pwms = <&pwm20 0 PWM_USEC(1000) PWM_POLARITY_NORMAL>;
+			label = "D1 red (P1.04)";
+		};
+
+		led_d2: led_d2 {
+			pwms = <&pwm20 1 PWM_USEC(1000) PWM_POLARITY_NORMAL>;
+			label = "D2 red (P2.03)";
+		};
+	};
+
+	/* SW1 (1TS002B-1600-5001) to GND on net KEY. No external pull-up on
+	 * the schematic, so the internal one is not optional. */
+	buttons: buttons {
+		compatible = "gpio-keys";
+
+		usr_btn: usr-btn {
+			gpios = <&gpio0 4 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "KEY";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+
+	aliases {
+		led0 = &led_d1;
+		led1 = &led_d2;
+		pwm-led0 = &led_d1;
+		pwm-led1 = &led_d2;
+		sw0 = &usr_btn;
+	};
+};
+
+&pwm20 {
+	pinctrl-0 = <&pwm20_default>;
+	pinctrl-1 = <&pwm20_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&uart30 {
+	current-speed = <115200>;
+	pinctrl-0 = <&uart30_default>;
+	pinctrl-1 = <&uart30_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&i2c21 {
+	compatible = "nordic,nrf-twim";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c21_default>;
+	pinctrl-1 = <&i2c21_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	/*
+	 * LIS2DW12TR. CS tied to VDDS selects I2C; SDO/SA0 also tied to VDDS,
+	 * so the 7-bit address is 0x19 (it would be 0x18 with SA0 low).
+	 * Enable with CONFIG_I2C=y, CONFIG_SENSOR=y, CONFIG_LIS2DW12=y.
+	 */
+	lis2dw12: lis2dw12@19 {
+		compatible = "st,lis2dw12";
+		reg = <0x19>;
+		status = "disabled";
+		irq-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>,
+			    <&gpio1 14 GPIO_ACTIVE_HIGH>;
+	};
+};

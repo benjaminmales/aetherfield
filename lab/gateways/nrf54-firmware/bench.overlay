@@ -1,0 +1,2 @@
+/* No longer needed - USB console is the default build now.
+ * Kept as a no-op so an existing build command doesn't fail. */

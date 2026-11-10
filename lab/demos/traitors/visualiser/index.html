@@ -1,0 +1,1343 @@
+<!doctype html>
+<!--
+  Traitors live voting visualiser.
+
+  Connects to the gateway over Web Serial, parses lines of the form
+      BAND uuid=0xABCD rssi=-45 hand=1 clap=0
+  and renders two side-by-side "battery" columns that fill up as bands
+  raise their hand to vote.
+
+  Requires a Chromium-based browser (Chrome, Edge, Brave...) on
+  https://, http://localhost or a local file. If file:// blocks the
+  Web Serial prompt on your system, serve this folder with:
+      python3 -m http.server 8000
+  and open http://localhost:8000/visualiser/
+
+  No build step, no dependencies.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Traitors — Live Voting</title>
+
+  <!-- Display + UI typefaces. If the network blocks the CDN the fallback
+       stack still produces a tasteful serif / clean sans pairing. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      /* Palette: deep candlelit-blue with warm crimson / steel-blue accents.
+         Loosely styled after the moodiness of the Traitors roundtable. */
+      --bg-0:        #07090f;
+      --bg-1:        #0d111c;
+      --bg-2:        #141a2a;
+      --panel:       rgba(20, 26, 42, 0.62);
+      --panel-solid: #141a2a;
+      --line:        rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.18);
+      --ink:         #ecedf2;
+      --ink-dim:     #aab1c1;
+      --muted:       #6b7388;
+
+      --accent:      #e0314f;    /* Traitor 1 — crimson */
+      --accent-2:    #5cb8ff;    /* Traitor 2 — steel blue */
+      --accent-glow: rgba(224, 49, 79, 0.55);
+      --accent-2-glow: rgba(92, 184, 255, 0.55);
+
+      --good:        #6dd8a1;
+      --warn:        #f0c060;
+
+      --cell-empty:  rgba(255, 255, 255, 0.025);
+      --cell-border: rgba(255, 255, 255, 0.08);
+
+      --display: "Cormorant Garamond", Didot, "Bodoni 72", Georgia, serif;
+      --sans:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      --mono:    ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--sans);
+      font-feature-settings: "ss01", "cv11";
+      -webkit-font-smoothing: antialiased;
+      background: var(--bg-0);
+    }
+
+    /* Atmospheric background: two soft radial pools + a faint grain
+       texture to break up flat fills. */
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(900px 700px at 15% 0%,  rgba(224, 49, 79, 0.10), transparent 60%),
+        radial-gradient(900px 700px at 85% 100%, rgba(92, 184, 255, 0.10), transparent 60%),
+        linear-gradient(180deg, var(--bg-1), var(--bg-0) 70%);
+      z-index: -2;
+    }
+    body::after {
+      content: "";
+      position: fixed; inset: 0;
+      pointer-events: none;
+      opacity: 0.04;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      z-index: -1;
+    }
+
+    body { display: flex; flex-direction: column; }
+
+    /* ---------- Header ---------- */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 22px 36px 14px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 16px;
+      min-width: 240px;
+    }
+    .brand img { height: 42px; opacity: 0.95; filter: drop-shadow(0 1px 6px rgba(0,0,0,0.4)); }
+    .brand .wordmark {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: 0.16em;     /* tracked-out for all-caps */
+      color: var(--ink);
+    }
+    .brand .tag {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 4px;
+      padding-left: 2px;          /* nudge so the optical alignment matches the tracked wordmark */
+    }
+    .spacer { flex: 1; }
+
+    .status {
+      display: flex; align-items: center; gap: 16px;
+      font-size: 12.5px;
+      color: var(--ink-dim);
+    }
+    .status .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4a4f60;
+      box-shadow: 0 0 0 0 transparent;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .status.connected .dot {
+      background: var(--good);
+      box-shadow: 0 0 14px var(--good);
+    }
+    .status .bands {
+      padding: 5px 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      backdrop-filter: blur(8px);
+    }
+    .status .bands.candidates {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* ---------- Primary action ---------- */
+    .start-bar {
+      display: flex;
+      justify-content: center;
+      padding: 8px 36px 22px;
+    }
+    .start-btn {
+      position: relative;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      padding: 16px 56px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.25s ease, background 0.25s, border-color 0.25s;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
+    .start-btn:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.28); }
+    .start-btn:active { transform: translateY(0); }
+    .start-btn.armed.t1 {
+      background: linear-gradient(180deg, var(--accent), #91152e);
+      border-color: rgba(255,255,255,0.16);
+      box-shadow: 0 14px 40px var(--accent-glow);
+    }
+    .start-btn.armed.t2 {
+      background: linear-gradient(180deg, var(--accent-2), #1a6fb2);
+      border-color: rgba(255,255,255,0.16);
+      box-shadow: 0 14px 40px var(--accent-2-glow);
+    }
+
+    /* ---------- Voting area ---------- */
+    main {
+      flex: 1 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 110px 1fr;
+      gap: 28px;
+      padding: 0 36px 28px;
+      min-height: 0;
+    }
+
+    .column {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      min-height: 460px;
+      backdrop-filter: blur(14px);
+      transition: border-color 0.3s, box-shadow 0.3s, transform 0.25s;
+      overflow: hidden;
+    }
+    /* Inner highlight to lift the panel off the background. */
+    .column::before {
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.0) 40%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+              mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      pointer-events: none;
+    }
+    .column.focused.t1 { border-color: rgba(224, 49, 79, 0.55);  box-shadow: 0 0 50px rgba(224, 49, 79, 0.20), inset 0 0 60px rgba(224, 49, 79, 0.10); }
+    .column.focused.t2 { border-color: rgba(92, 184, 255, 0.55); box-shadow: 0 0 50px rgba(92, 184, 255, 0.20), inset 0 0 60px rgba(92, 184, 255, 0.10); }
+    .column.winner.t1  { border-color: var(--accent);  box-shadow: 0 0 90px var(--accent-glow), inset 0 0 80px rgba(224, 49, 79, 0.18); }
+    .column.winner.t2  { border-color: var(--accent-2); box-shadow: 0 0 90px var(--accent-2-glow), inset 0 0 80px rgba(92, 184, 255, 0.18); }
+    .column.loser      { opacity: 0.42; transform: scale(0.985); }
+
+    .col-head {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .col-name {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 38px;
+      letter-spacing: 0.01em;
+      line-height: 1;
+      color: var(--ink);
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    .col-name small {
+      display: block;
+      font-family: var(--sans);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .column.focused.t1 .col-name,
+    .column.winner.t1  .col-name { color: var(--accent);  text-shadow: 0 0 24px rgba(224, 49, 79, 0.45); }
+    .column.focused.t2 .col-name,
+    .column.winner.t2  .col-name { color: var(--accent-2); text-shadow: 0 0 24px rgba(92, 184, 255, 0.45); }
+
+    .col-count {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 56px;
+      line-height: 1;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      transition: color 0.3s;
+    }
+    .column.focused .col-count, .column.winner .col-count { color: var(--ink); }
+
+    .battery {
+      flex: 1;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 7px;
+      min-height: 0;
+    }
+    .cell {
+      position: relative;
+      flex: 1;
+      min-height: 20px;
+      background: var(--cell-empty);
+      border: 1px solid var(--cell-border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      overflow: hidden;
+      transition: background 0.35s ease, color 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
+    }
+    .cell::before {
+      /* Subtle top highlight inside each cell */
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0) 35%);
+      opacity: 0;
+      transition: opacity 0.35s;
+      pointer-events: none;
+    }
+    .cell.filled {
+      color: #fff;
+      border-color: rgba(255,255,255,0.20);
+    }
+    .cell.filled::before { opacity: 1; }
+    .column.t1 .cell.filled {
+      background: linear-gradient(180deg, #ee4566, #a31e3a 90%);
+      box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.08), 0 4px 14px rgba(224, 49, 79, 0.25);
+    }
+    .column.t2 .cell.filled {
+      background: linear-gradient(180deg, #7fcbff, #1d6fb7 90%);
+      box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.08), 0 4px 14px rgba(92, 184, 255, 0.25);
+    }
+    .cell.just-filled { animation: cellPop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    @keyframes cellPop {
+      0%   { transform: scale(0.6); filter: brightness(2.0); }
+      45%  { transform: scale(1.06); }
+      100% { transform: scale(1.0); filter: brightness(1.0); }
+    }
+
+    /* ---------- Center arrow ---------- */
+    .arrow-col {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 18px;
+    }
+    .arrow-btn {
+      width: 84px; height: 84px;
+      border-radius: 50%;
+      background: var(--panel);
+      border: 1px solid var(--line-strong);
+      color: var(--ink);
+      font-size: 28px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: transform 0.12s, background 0.25s, border-color 0.25s, box-shadow 0.25s;
+      display: grid; place-items: center;
+    }
+    .arrow-btn:hover:not(:disabled) {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.32);
+      box-shadow: 0 0 24px rgba(255,255,255,0.10);
+    }
+    .arrow-btn:active:not(:disabled) { transform: scale(0.94); }
+    .arrow-btn:disabled { opacity: 0.32; cursor: not-allowed; }
+    .arrow-btn svg { width: 30px; height: 30px; }
+
+    .finish-btn {
+      width: 84px;
+      padding: 11px 0;
+      border-radius: 14px;
+      border: 1px solid var(--line-strong);
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 10.5px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: background 0.25s, border-color 0.25s, transform 0.08s;
+    }
+    .finish-btn:hover:not(:disabled) { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.32); }
+    .finish-btn:active:not(:disabled) { transform: scale(0.96); }
+    .finish-btn:disabled { opacity: 0.32; cursor: not-allowed; }
+
+    /* ---------- Live signals (post-finish demo grid) ---------- */
+    .signals {
+      padding: 0 36px 28px;
+      flex: 0 0 auto;
+    }
+    .signals.hidden { display: none; }
+    .signals-head {
+      display: flex; align-items: baseline; gap: 18px;
+      margin: 6px 0 18px;
+    }
+    .signals-title {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 26px;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+    }
+    .signals-sub {
+      font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .signals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .tile {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 12px;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s, box-shadow 0.2s, opacity 0.3s;
+    }
+    .tile .id {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--ink-dim);
+      letter-spacing: 0.04em;
+    }
+    .tile .indicators { display: flex; gap: 10px; }
+    .ind {
+      flex: 1;
+      padding: 8px 6px;
+      border-radius: 10px;
+      background: var(--cell-empty);
+      border: 1px solid var(--cell-border);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.2s;
+    }
+    .tile.hand .ind.hand {
+      background: linear-gradient(180deg, #82e7ad, #2b8b5b);
+      color: #062014; border-color: transparent;
+      box-shadow: 0 0 18px rgba(109, 216, 161, 0.35);
+    }
+    .tile.clap .ind.clap {
+      background: linear-gradient(180deg, #ffd980, #b88a1f);
+      color: #2a1e04; border-color: transparent;
+      animation: clapflash 0.45s ease-out;
+      box-shadow: 0 0 18px rgba(240, 192, 96, 0.35);
+    }
+    @keyframes clapflash {
+      0%   { transform: scale(0.86); filter: brightness(2); }
+      100% { transform: scale(1.0);  filter: brightness(1); }
+    }
+    .tile.stale { opacity: 0.35; }
+
+    /* ---------- Footer / settings ---------- */
+    footer {
+      padding: 14px 36px 22px;
+      border-top: 1px solid var(--line);
+      background: rgba(13, 17, 28, 0.7);
+      backdrop-filter: blur(10px);
+      flex: 0 0 auto;
+    }
+    .settings {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+      font-size: 13px;
+    }
+    .settings details {
+      flex: 1; min-width: 280px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 16px;
+      backdrop-filter: blur(10px);
+    }
+    .settings details summary {
+      cursor: pointer; color: var(--ink-dim);
+      list-style: none;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      user-select: none;
+    }
+    .settings details summary::-webkit-details-marker { display: none; }
+    .settings details[open] summary { color: var(--ink); }
+    .settings .row {
+      display: flex; flex-wrap: wrap; gap: 14px 18px; margin-top: 12px;
+      align-items: center;
+    }
+    .settings label {
+      color: var(--ink-dim); display: flex; gap: 8px; align-items: center;
+      font-size: 13px;
+    }
+    .settings input[type="number"],
+    .settings input[type="text"],
+    .settings select {
+      background: rgba(255,255,255,0.04);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-family: inherit; font-size: 13px;
+    }
+    .settings input[type="text"] { font-family: var(--mono); letter-spacing: 0.04em; }
+    .settings input[type="number"]:focus,
+    .settings input[type="text"]:focus,
+    .settings select:focus {
+      outline: none; border-color: rgba(255,255,255,0.32);
+    }
+    .settings button {
+      background: rgba(255,255,255,0.04);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      font-family: var(--sans);
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .settings button:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.24); }
+    .settings button.primary {
+      background: linear-gradient(180deg, var(--accent-2), #1a6fb2);
+      border-color: transparent;
+      color: #fff;
+      font-weight: 600;
+    }
+    .settings button.primary:hover { filter: brightness(1.08); }
+    .settings .hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .settings .hint b { color: var(--ink-dim); font-weight: 600; }
+
+    /* ---------- Winner banner ---------- */
+    .banner {
+      position: fixed;
+      top: 35%;
+      left: 0; right: 0;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(28px) scale(0.96);
+      transition: opacity 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+      z-index: 50;
+    }
+    .banner.show { opacity: 1; transform: translateY(0) scale(1); }
+    .banner .kicker {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      margin-bottom: 14px;
+    }
+    .banner .name {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 96px;
+      letter-spacing: 0.01em;
+      line-height: 1;
+    }
+    .banner .tally {
+      display: block;
+      font-size: 15px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      margin-top: 22px;
+      font-variant-numeric: tabular-nums;
+    }
+    .banner.t1 .name { color: var(--accent);   text-shadow: 0 0 50px rgba(224, 49, 79, 0.55), 0 0 100px rgba(224, 49, 79, 0.25); }
+    .banner.t2 .name { color: var(--accent-2); text-shadow: 0 0 50px rgba(92, 184, 255, 0.55), 0 0 100px rgba(92, 184, 255, 0.25); }
+    .banner.tie .name { color: var(--warn);    text-shadow: 0 0 50px rgba(240, 192, 96, 0.5); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="assets/aetherfield_logo.png" alt="Aetherfield" onerror="this.style.display='none'" />
+      <div>
+        <div class="wordmark">ÆTHERFIELD</div>
+        <span class="tag">Audience</span>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="status" id="status">
+      <span class="dot"></span>
+      <span id="statusText">Not connected</span>
+      <span class="bands"><span id="activeCount">0</span> active band<span id="bandsPlural">s</span></span>
+      <span class="bands candidates hidden" id="candidatesPill" title="Frames that look like band packets but haven't proven themselves yet. Tune in Settings."><span id="candidatesCount">0</span> pending</span>
+    </div>
+  </header>
+
+  <div class="start-bar">
+    <button class="start-btn" id="startBtn">Start voting</button>
+  </div>
+
+  <main id="votingMain">
+    <section class="column t1" id="col1">
+      <div class="col-head">
+        <div class="col-name">
+          <small>The accused</small>
+          Traitor I
+        </div>
+        <div class="col-count" id="count1">0</div>
+      </div>
+      <div class="battery" id="battery1"></div>
+    </section>
+
+    <div class="arrow-col">
+      <button class="arrow-btn" id="arrowBtn" title="Switch traitor" aria-label="Switch traitor">
+        <svg id="arrowSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>
+        </svg>
+      </button>
+      <button class="finish-btn" id="finishBtn" disabled>Finish</button>
+    </div>
+
+    <section class="column t2" id="col2">
+      <div class="col-head">
+        <div class="col-name">
+          <small>The accused</small>
+          Traitor II
+        </div>
+        <div class="col-count" id="count2">0</div>
+      </div>
+      <div class="battery" id="battery2"></div>
+    </section>
+  </main>
+
+  <!-- Live gesture grid. Sits below the voting columns and is revealed
+       after the round finishes. -->
+  <section class="signals hidden" id="signals">
+    <div class="signals-head">
+      <div class="signals-title">Live signals</div>
+      <div class="signals-sub">Every band, in real time</div>
+    </div>
+    <div class="signals-grid" id="demoGrid"></div>
+  </section>
+
+  <footer>
+    <div class="settings">
+      <details>
+        <summary>⚙ Settings · connect serial · voting rules · simulator</summary>
+        <div class="row">
+          <button id="connectBtn" class="primary">Connect to gateway</button>
+          <button id="disconnectBtn" disabled>Disconnect</button>
+          <label>Baud
+            <select id="baud">
+              <option>9600</option>
+              <option>57600</option>
+              <option selected>115200</option>
+              <option>230400</option>
+              <option>460800</option>
+            </select>
+          </label>
+          <label>
+            <input type="checkbox" id="multiVote" />
+            Allow a band to vote for both traitors (split vote)
+          </label>
+          <label>Drop band after
+            <input type="number" id="staleMs" value="6000" min="1000" step="500" style="width:84px" />
+            ms of silence
+          </label>
+          <label>Trust band after
+            <input type="number" id="minPackets" value="3" min="1" max="20" step="1" style="width:60px" />
+            packets
+          </label>
+          <label style="flex: 1 1 240px; min-width: 240px;">Ignore uuids
+            <input type="text" id="blacklist" placeholder="e.g. ABCD, 1234, F00D"
+                   style="flex:1; min-width: 0;" />
+          </label>
+          <button id="simBtn">Simulate 8 bands</button>
+          <button id="resetBtn">Clear all bands</button>
+        </div>
+        <div class="row">
+          <label style="flex: 1 1 320px; min-width: 280px;">Cloud endpoint
+            <input type="url" id="cloudUrl" placeholder="https://…/api/vote-result"
+                   style="flex:1; min-width: 0;" />
+          </label>
+          <label style="flex: 1 1 200px; min-width: 180px;">Cloud secret
+            <input type="password" id="cloudSecret" placeholder="VOTE_RESULT_SECRET"
+                   style="flex:1; min-width: 0;" />
+          </label>
+          <button id="cloudResetBtn">Reset guest data</button>
+          <span class="hint" id="cloudStatus" style="align-self:center;">Results are POSTed to the cloud on Finish, which messages registered guests.</span>
+        </div>
+        <div class="row">
+          <div class="hint">
+            <b>How to play:</b> click <b>Connect to gateway</b> and pick the USB serial port. Press <b>Start voting</b>. Bands raise their wrist to cast a vote for the currently highlighted traitor — tap the arrow to switch to the other. With split vote off (default), each band can vote at most once. Press <b>Finish</b> to reveal the winner; the live signals panel below will then show real-time hand-raise and clap state for every band.<br><br>
+            <b>Noise filtering:</b> the gateway runs in promiscuous mode and can briefly mis-parse unrelated 802.15.4 frames as fake bands. <b>Trust band after N packets</b> drops the one-shots — a real band passes the threshold in ~1.5 s at the 500 ms broadcast cadence. If a stubborn non-band keeps reappearing with the same uuid, paste it into <b>Ignore uuids</b> (comma-separated, hex). The header pill shows how many candidates are currently being suppressed.
+          </div>
+        </div>
+      </details>
+    </div>
+  </footer>
+
+  <div class="banner" id="banner" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+ * State model
+ * ===================================================================== */
+const state = {
+  phase: "idle",          // idle | voting | finished | demo
+  focused: 1,             // 1 or 2 — which column accepts the next vote
+  multiVote: false,
+  staleMs: 6000,
+
+  /* Anti-noise filter: the gateway runs promiscuous and can mis-parse
+   * unrelated 802.15.4 frames as fake BAND lines. A real wristband
+   * broadcasts every ~500ms, so we hold every newly-seen uuid as a
+   * candidate until it has produced this many packets — that filters
+   * out one-shot mis-parses without delaying real bands by more than
+   * ~1-1.5 s. */
+  minPackets: 3,
+  /* Manual escape hatch for persistent interferers: a Set of upper-
+   * case uuid strings (no "0x") to drop entirely on receive. */
+  blacklist: new Set(),
+
+  bands: new Map(),       // uuid -> { uuid, firstSeen, lastSeen, packetCount, confirmedAt, hand, clap, lastClapAt, votedFor: Set<1|2> }
+  votes: { 1: [], 2: [] },// arrays of uuid in arrival order (used to fill cells bottom-up)
+  frozenTotal: 0,         // cell count captured at finish-time so the result panel doesn't reshape if a band drops offline afterwards
+
+  port: null,
+  reader: null,
+  connected: false,
+
+  simInterval: null,
+};
+
+/* =====================================================================
+ * DOM refs
+ * ===================================================================== */
+const els = {
+  status: document.getElementById("status"),
+  statusText: document.getElementById("statusText"),
+  activeCount: document.getElementById("activeCount"),
+  bandsPlural: document.getElementById("bandsPlural"),
+  candidatesPill: document.getElementById("candidatesPill"),
+  candidatesCount: document.getElementById("candidatesCount"),
+  startBtn: document.getElementById("startBtn"),
+  arrowBtn: document.getElementById("arrowBtn"),
+  arrowSvg: document.getElementById("arrowSvg"),
+  finishBtn: document.getElementById("finishBtn"),
+  col1: document.getElementById("col1"),
+  col2: document.getElementById("col2"),
+  count1: document.getElementById("count1"),
+  count2: document.getElementById("count2"),
+  battery1: document.getElementById("battery1"),
+  battery2: document.getElementById("battery2"),
+  votingMain: document.getElementById("votingMain"),
+  signals: document.getElementById("signals"),
+  demoGrid: document.getElementById("demoGrid"),
+  banner: document.getElementById("banner"),
+
+  connectBtn: document.getElementById("connectBtn"),
+  disconnectBtn: document.getElementById("disconnectBtn"),
+  baud: document.getElementById("baud"),
+  multiVote: document.getElementById("multiVote"),
+  staleMs: document.getElementById("staleMs"),
+  minPackets: document.getElementById("minPackets"),
+  blacklist: document.getElementById("blacklist"),
+  simBtn: document.getElementById("simBtn"),
+  resetBtn: document.getElementById("resetBtn"),
+  cloudUrl: document.getElementById("cloudUrl"),
+  cloudSecret: document.getElementById("cloudSecret"),
+  cloudStatus: document.getElementById("cloudStatus"),
+  cloudResetBtn: document.getElementById("cloudResetBtn"),
+};
+
+/* Cloud settings persist across sessions (defaults below used until changed). */
+const CLOUD_URL_DEFAULT = "https://traitors-registration.vercel.app/api/vote-result";
+/* No default secret: the operator enters it once and localStorage keeps it.
+   Never hardcode a working credential here - this file goes into git. */
+const CLOUD_SECRET_DEFAULT = "";
+els.cloudUrl.value = localStorage.getItem("traitors.cloudUrl") || CLOUD_URL_DEFAULT;
+els.cloudSecret.value = localStorage.getItem("traitors.cloudSecret") || CLOUD_SECRET_DEFAULT;
+els.cloudUrl.addEventListener("change", () => localStorage.setItem("traitors.cloudUrl", els.cloudUrl.value.trim()));
+els.cloudSecret.addEventListener("change", () => localStorage.setItem("traitors.cloudSecret", els.cloudSecret.value.trim()));
+els.cloudResetBtn.addEventListener("click", cloudResetGuests);
+
+/* =====================================================================
+ * Cloud: on Finish, POST the round result. The cloud looks up who each
+ * band belongs to and sends them a personalised WhatsApp/SMS.
+ * ===================================================================== */
+/* Instant reaction: the moment a band casts, tell the cloud so the guest's
+ * phone buzzes with an in-character comment on their choice. */
+function postVoteCast(uuid, slot) {
+  const url = els.cloudUrl.value.trim();
+  if (!url) return;
+  const castUrl = url.replace(/\/vote-result\/?$/, "/vote-cast");
+  const headers = { "Content-Type": "application/json" };
+  const secret = els.cloudSecret.value.trim();
+  if (secret) headers["Authorization"] = `Bearer ${secret}`;
+  fetch(castUrl, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ deviceId: uuid, votedFor: slot }),
+  }).catch((err) => console.warn("vote-cast post failed:", err));
+}
+
+/* Manual reset: wipe every guest registration in the cloud (between runs). */
+async function cloudResetGuests() {
+  const url = els.cloudUrl.value.trim();
+  if (!url) { els.cloudStatus.textContent = "Set the cloud endpoint first."; return; }
+  if (!confirm("Delete ALL registered guest data now?")) return;
+  const resetUrl = url.replace(/\/vote-result\/?$/, "/reset");
+  const headers = { "Content-Type": "application/json" };
+  const secret = els.cloudSecret.value.trim();
+  if (secret) headers["Authorization"] = `Bearer ${secret}`;
+  els.cloudStatus.textContent = "Wiping guest data…";
+  try {
+    const res = await fetch(resetUrl, { method: "POST", headers });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    els.cloudStatus.textContent = `✓ Guest data wiped (${data.deleted} deleted).`;
+  } catch (err) {
+    console.error("Cloud reset failed:", err);
+    els.cloudStatus.textContent = `✗ Reset failed: ${err.message}`;
+  }
+}
+
+async function postVoteResult() {
+  const url = els.cloudUrl.value.trim();
+  if (!url) return;
+  const payload = {
+    votes: { 1: [...state.votes[1]], 2: [...state.votes[2]] },
+    totalBands: state.frozenTotal,
+  };
+  els.cloudStatus.textContent = "Sending results to the cloud…";
+  try {
+    const headers = { "Content-Type": "application/json" };
+    const secret = els.cloudSecret.value.trim();
+    if (secret) headers["Authorization"] = `Bearer ${secret}`;
+    const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    const n = (data.recipients || []).filter((r) => !r.error).length;
+    els.cloudStatus.textContent = `✓ Result sent — ${n} guest${n === 1 ? "" : "s"} messaged.`;
+  } catch (err) {
+    console.error("Cloud post failed:", err);
+    els.cloudStatus.textContent = `✗ Cloud send failed: ${err.message}`;
+  }
+}
+
+/* =====================================================================
+ * Serial connection (Web Serial API)
+ * ===================================================================== */
+async function connectSerial() {
+  if (!("serial" in navigator)) {
+    alert("Web Serial isn't available in this browser. Use Chrome, Edge, or another Chromium-based browser.");
+    return;
+  }
+  try {
+    const port = await navigator.serial.requestPort();
+    const baudRate = parseInt(els.baud.value, 10) || 115200;
+    await port.open({ baudRate });
+    state.port = port;
+    state.connected = true;
+    setStatus(true, `Connected · ${baudRate} baud`);
+    els.connectBtn.disabled = true;
+    els.disconnectBtn.disabled = false;
+    readLoop(port);
+  } catch (err) {
+    console.error(err);
+    alert("Connection failed: " + err.message);
+  }
+}
+
+async function disconnectSerial() {
+  try { if (state.reader) await state.reader.cancel().catch(() => {}); } catch {}
+  try { if (state.port) await state.port.close(); } catch {}
+  state.port = null;
+  state.reader = null;
+  state.connected = false;
+  setStatus(false, "Not connected");
+  els.connectBtn.disabled = false;
+  els.disconnectBtn.disabled = true;
+}
+
+async function readLoop(port) {
+  const decoder = new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable).catch(() => {});
+  const reader = decoder.readable.getReader();
+  state.reader = reader;
+
+  let buffer = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      let nl;
+      while ((nl = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, nl).replace(/\r$/, "");
+        buffer = buffer.slice(nl + 1);
+        if (line.length) handleLine(line);
+      }
+    }
+  } catch (err) {
+    console.warn("read loop ended:", err);
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+/* =====================================================================
+ * Line parsing
+ *
+ * Gateway emits, per packet:
+ *   BAND uuid=0xABCD rssi=-45 hand=1 clap=0
+ * ===================================================================== */
+const BAND_RE = /BAND\s+uuid=0x([0-9A-Fa-f]+)\s+rssi=(-?\d+)\s+hand=(\d)\s+clap=(\d)/;
+
+function handleLine(line) {
+  const m = BAND_RE.exec(line);
+  if (!m) return;
+  const uuid = m[1].toUpperCase().padStart(4, "0");
+  const hand = m[3] === "1";
+  const clap = m[4] === "1";
+  ingestBand(uuid, hand, clap);
+}
+
+function ingestBand(uuid, hand, clap) {
+  /* Manual blacklist: a hard drop for uuids the user has identified
+   * as persistent non-band interferers. */
+  if (state.blacklist.has(uuid)) return;
+
+  const now = performance.now();
+  let band = state.bands.get(uuid);
+  if (!band) {
+    band = {
+      uuid,
+      firstSeen: now,
+      lastSeen: now,
+      packetCount: 0,
+      confirmedAt: 0,         /* 0 = still a candidate */
+      hand: false,
+      clap: false,
+      lastClapAt: 0,
+      votedFor: new Set(),
+    };
+    state.bands.set(uuid, band);
+  }
+  const prevHand = band.hand;
+  band.lastSeen = now;
+  band.packetCount++;
+  band.hand = hand;
+
+  /* Promote candidate -> confirmed once we've seen enough packets.
+   * Real wristbands hit this in ~1-1.5 s at the 500ms broadcast
+   * cadence; misparsed one-shot frames never get here. */
+  if (!band.confirmedAt && band.packetCount >= state.minPackets) {
+    band.confirmedAt = now;
+  }
+
+  /* Rising-edge on hand-raise => vote action. Sustained packets while
+   * already raised do not re-count. Votes only fire from confirmed
+   * bands so noise can't poison the tally. */
+  if (!prevHand && hand && band.confirmedAt) {
+    castVote(uuid);
+  }
+  if (clap && !band.clap) band.lastClapAt = now;
+  band.clap = clap;
+
+  render();
+}
+
+/* =====================================================================
+ * Vote logic
+ *
+ * "multiVote" off (default): each band can vote at most once, total.
+ * "multiVote" on            : a band can vote for both traitors (split
+ *                             vote), but still only once per traitor.
+ * ===================================================================== */
+function castVote(uuid) {
+  if (state.phase !== "voting") return;
+  const band = state.bands.get(uuid);
+  if (!band) return;
+  if (!state.multiVote && band.votedFor.size > 0) return;
+
+  const slot = state.focused;
+  if (band.votedFor.has(slot)) return;
+
+  band.votedFor.add(slot);
+  state.votes[slot].push(uuid);
+
+  /* Fire-and-forget: instant personalised message to the guest's phone. */
+  postVoteCast(uuid, slot);
+}
+
+function resetVotes() {
+  for (const band of state.bands.values()) band.votedFor.clear();
+  state.votes[1] = [];
+  state.votes[2] = [];
+}
+
+/* =====================================================================
+ * Active-band tracking
+ * ===================================================================== */
+function activeBands() {
+  const cutoff = performance.now() - state.staleMs;
+  const active = [];
+  for (const b of state.bands.values()) {
+    if (b.lastSeen < cutoff) continue;
+    if (!b.confirmedAt) continue;     /* candidate, not yet trusted */
+    active.push(b);
+  }
+  active.sort((a, b) => a.firstSeen - b.firstSeen);
+  return active;
+}
+
+/* Bands that are alive on the radio but haven't crossed the trust
+ * threshold yet — surfaced in the header so the user can see when the
+ * filter is suppressing something. */
+function candidateBands() {
+  const cutoff = performance.now() - state.staleMs;
+  let n = 0;
+  for (const b of state.bands.values()) {
+    if (b.lastSeen >= cutoff && !b.confirmedAt) n++;
+  }
+  return n;
+}
+
+/* Drop forgotten candidates so the bands map doesn't grow unbounded
+ * from random radio noise. Confirmed bands are kept around past
+ * staleMs too — they just don't appear in activeBands() — so a band
+ * that briefly dropped out can reappear with its vote history intact
+ * if it comes back within ~1 minute. */
+function gcBands() {
+  const now = performance.now();
+  for (const [uuid, b] of state.bands) {
+    const age = now - b.lastSeen;
+    if (!b.confirmedAt && age > state.staleMs) {
+      state.bands.delete(uuid);
+    } else if (b.confirmedAt && age > 60_000) {
+      state.bands.delete(uuid);
+    }
+  }
+}
+
+/* =====================================================================
+ * Rendering
+ * ===================================================================== */
+function setStatus(connected, text) {
+  els.status.classList.toggle("connected", !!connected);
+  els.statusText.textContent = text;
+}
+
+function render() {
+  const active = activeBands();
+  els.activeCount.textContent = active.length;
+  els.bandsPlural.textContent = active.length === 1 ? "" : "s";
+
+  const pending = candidateBands();
+  els.candidatesCount.textContent = pending;
+  els.candidatesPill.classList.toggle("hidden", pending === 0);
+
+  renderBatteries(active);
+  renderControls();
+
+  /* Live-signals grid is only populated when it's visible (post-finish). */
+  if (state.phase === "finished" || state.phase === "demo") {
+    renderDemoGrid(active);
+  }
+}
+
+function renderBatteries(active) {
+  /* While voting, cells track the live active-band count. After
+   * finish we lock the count so the result panel is stable even if a
+   * band falls offline during the demo phase below it. */
+  const liveTotal = (state.phase === "finished" || state.phase === "demo")
+    ? state.frozenTotal
+    : active.length;
+  const total = Math.max(liveTotal, 1);
+  for (const slot of [1, 2]) {
+    const battery = slot === 1 ? els.battery1 : els.battery2;
+    const countEl = slot === 1 ? els.count1 : els.count2;
+    const filled = state.votes[slot];
+    countEl.textContent = filled.length;
+
+    if (battery.childElementCount !== total) {
+      battery.innerHTML = "";
+      for (let i = 0; i < total; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        battery.appendChild(cell);
+      }
+    }
+    const cells = battery.children;
+    for (let i = 0; i < total; i++) {
+      const cell = cells[i];
+      if (i < filled.length) {
+        const wasFilled = cell.classList.contains("filled");
+        cell.classList.add("filled");
+        if (!wasFilled) {
+          cell.classList.add("just-filled");
+          setTimeout(() => cell.classList.remove("just-filled"), 600);
+        }
+        cell.textContent = filled[i];
+      } else {
+        cell.classList.remove("filled");
+        cell.textContent = "";
+      }
+    }
+  }
+
+  /* Focused vs winner styling. */
+  for (const col of [els.col1, els.col2]) {
+    col.classList.remove("focused", "winner", "loser");
+  }
+  if (state.phase === "voting") {
+    (state.focused === 1 ? els.col1 : els.col2).classList.add("focused");
+  } else if (state.phase === "finished" || state.phase === "demo") {
+    const a = state.votes[1].length, b = state.votes[2].length;
+    if (a > b)       { els.col1.classList.add("winner"); els.col2.classList.add("loser"); }
+    else if (b > a)  { els.col2.classList.add("winner"); els.col1.classList.add("loser"); }
+    /* On a tie, leave both un-classed. */
+  }
+}
+
+function renderControls() {
+  switch (state.phase) {
+    case "idle":
+      els.startBtn.textContent = "Start voting";
+      els.startBtn.className = "start-btn";
+      els.finishBtn.disabled = true;
+      els.arrowBtn.disabled = true;
+      break;
+    case "voting":
+      els.startBtn.textContent = "Reset round";
+      els.startBtn.className = "start-btn armed " + (state.focused === 2 ? "t2" : "t1");
+      els.finishBtn.disabled = false;
+      els.arrowBtn.disabled = false;
+      els.arrowSvg.style.transform = state.focused === 1 ? "rotate(0deg)" : "rotate(180deg)";
+      els.arrowSvg.style.transition = "transform 0.25s";
+      break;
+    case "finished":
+    case "demo":
+      els.startBtn.textContent = "Start new round";
+      els.startBtn.className = "start-btn";
+      els.finishBtn.disabled = true;
+      els.arrowBtn.disabled = true;
+      break;
+  }
+}
+
+function renderDemoGrid(active) {
+  const now = performance.now();
+  const existing = new Map();
+  for (const tile of els.demoGrid.children) existing.set(tile.dataset.uuid, tile);
+
+  for (const b of active) {
+    let tile = existing.get(b.uuid);
+    if (!tile) {
+      tile = document.createElement("div");
+      tile.className = "tile";
+      tile.dataset.uuid = b.uuid;
+      tile.innerHTML = `
+        <div class="id">0x${b.uuid}</div>
+        <div class="indicators">
+          <div class="ind hand">Hand</div>
+          <div class="ind clap">Clap</div>
+        </div>`;
+      els.demoGrid.appendChild(tile);
+    }
+    tile.classList.toggle("hand", b.hand);
+    tile.classList.toggle("clap", (now - b.lastClapAt) < 600);
+    tile.classList.toggle("stale", (now - b.lastSeen) > state.staleMs);
+    existing.delete(b.uuid);
+  }
+  for (const tile of existing.values()) tile.remove();
+}
+
+/* =====================================================================
+ * Phase transitions
+ * ===================================================================== */
+function beginRound() {
+  state.phase = "voting";
+  state.focused = 1;
+  resetVotes();
+  els.banner.classList.remove("show");
+  els.signals.classList.add("hidden");
+  els.demoGrid.innerHTML = "";
+  render();
+}
+
+function finishRound() {
+  if (state.phase !== "voting") return;
+  state.phase = "finished";
+  state.frozenTotal = Math.max(activeBands().length, state.votes[1].length, state.votes[2].length);
+
+  const a = state.votes[1].length, b = state.votes[2].length;
+  let title = "", cls = "";
+  if (a > b)      { title = "Traitor I";  cls = "t1"; }
+  else if (b > a) { title = "Traitor II"; cls = "t2"; }
+  else            { title = "Tied";       cls = "tie"; }
+
+  els.banner.className = "banner show " + cls;
+  els.banner.innerHTML = `
+    <span class="kicker">${cls === "tie" ? "No verdict" : "The winner is"}</span>
+    <span class="name">${title}</span>
+    <span class="tally">${a} · ${b} &nbsp; from ${activeBands().length} bands</span>`;
+
+  /* Reveal the live signals panel beneath the columns. */
+  els.signals.classList.remove("hidden");
+  render();
+
+  /* Fire-and-forget: message registered guests with their personal result. */
+  postVoteResult();
+
+  /* Banner is informational, so fade it after 3.5s and slip into the
+   * demo phase. The columns remain showing the final result. */
+  setTimeout(() => {
+    state.phase = "demo";
+    els.banner.classList.remove("show");
+    render();
+  }, 3500);
+}
+
+/* =====================================================================
+ * Button wiring
+ * ===================================================================== */
+els.connectBtn.addEventListener("click", connectSerial);
+els.disconnectBtn.addEventListener("click", disconnectSerial);
+els.multiVote.addEventListener("change", () => { state.multiVote = els.multiVote.checked; });
+els.staleMs.addEventListener("change", () => {
+  state.staleMs = Math.max(1000, parseInt(els.staleMs.value, 10) || 6000);
+});
+els.minPackets.addEventListener("change", () => {
+  state.minPackets = Math.max(1, parseInt(els.minPackets.value, 10) || 3);
+  /* Re-evaluate every band — lowering the threshold should promote
+   * pending candidates immediately, raising it shouldn't demote
+   * already-trusted bands. */
+  for (const b of state.bands.values()) {
+    if (!b.confirmedAt && b.packetCount >= state.minPackets) {
+      b.confirmedAt = performance.now();
+    }
+  }
+  render();
+});
+
+/* Parse the comma/space-separated uuid list from the input box. Each
+ * token is normalised to upper-case 4-hex-digit form so users can
+ * paste "0xabcd", "ABCD", "abcd," whatever. */
+function applyBlacklist() {
+  const raw = els.blacklist.value || "";
+  const tokens = raw.split(/[\s,;]+/).map(t => t.trim()).filter(Boolean);
+  const next = new Set();
+  for (const t of tokens) {
+    const clean = t.replace(/^0x/i, "").toUpperCase().padStart(4, "0");
+    if (/^[0-9A-F]+$/.test(clean)) next.add(clean);
+  }
+  state.blacklist = next;
+  /* Evict any currently-tracked bands that just got blacklisted, and
+   * clean their votes out so the tally doesn't include them. */
+  for (const uuid of next) {
+    const band = state.bands.get(uuid);
+    if (!band) continue;
+    state.bands.delete(uuid);
+    for (const slot of [1, 2]) {
+      state.votes[slot] = state.votes[slot].filter(u => u !== uuid);
+    }
+  }
+  render();
+}
+els.blacklist.addEventListener("change", applyBlacklist);
+els.blacklist.addEventListener("blur",   applyBlacklist);
+
+/* Top button: always starts a fresh voting round, whatever phase we're
+ * in. Previously a `demo` or `finished` phase fell into a stale path
+ * that only cleared votes without re-showing the voting view. */
+els.startBtn.addEventListener("click", () => {
+  if (state.phase === "voting") {
+    /* Mid-round reset: keep current bands online, wipe votes,
+     * focus back on Traitor I. */
+    resetVotes();
+    state.focused = 1;
+    render();
+  } else {
+    beginRound();
+  }
+});
+
+els.arrowBtn.addEventListener("click", () => {
+  if (state.phase !== "voting") return;
+  state.focused = state.focused === 1 ? 2 : 1;
+  render();
+});
+
+els.finishBtn.addEventListener("click", finishRound);
+
+els.resetBtn.addEventListener("click", () => {
+  /* Hard reset: forget every band, return to idle. */
+  state.bands.clear();
+  resetVotes();
+  state.phase = "idle";
+  els.banner.classList.remove("show");
+  els.signals.classList.add("hidden");
+  els.demoGrid.innerHTML = "";
+  render();
+});
+
+/* =====================================================================
+ * Simulator — generates BAND events into ingestBand() directly so the
+ * UI can be developed without hardware on the desk.
+ * ===================================================================== */
+els.simBtn.addEventListener("click", () => {
+  if (state.simInterval) {
+    clearInterval(state.simInterval);
+    state.simInterval = null;
+    els.simBtn.textContent = "Simulate 8 bands";
+    return;
+  }
+  const uuids = [];
+  for (let i = 0; i < 8; i++) {
+    uuids.push((0x1000 + i * 0x37).toString(16).toUpperCase().padStart(4, "0"));
+  }
+  const handStates = new Map(uuids.map(u => [u, false]));
+  const clapTicks  = new Map(uuids.map(u => [u, 0]));
+  state.simInterval = setInterval(() => {
+    if (Math.random() < 0.15) {
+      const u = uuids[Math.floor(Math.random() * uuids.length)];
+      handStates.set(u, !handStates.get(u));
+    }
+    if (Math.random() < 0.05) {
+      const u = uuids[Math.floor(Math.random() * uuids.length)];
+      clapTicks.set(u, 3);
+    }
+    for (const u of uuids) {
+      let c = clapTicks.get(u);
+      const clap = c > 0;
+      if (c > 0) clapTicks.set(u, c - 1);
+      ingestBand(u, handStates.get(u), clap);
+    }
+  }, 500);
+  els.simBtn.textContent = "Stop simulator";
+});
+
+/* Periodic render so stale bands fade out cleanly even without
+ * incoming packets, and so clap-flashes time out. The gcBands sweep
+ * keeps the bands map from growing forever in noisy RF environments. */
+setInterval(() => { gcBands(); render(); }, 500);
+
+render();
+</script>
+</body>
+</html>

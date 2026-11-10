@@ -1,0 +1,76 @@
+# Production only. lab/ is never built here — that is the point of the cordon.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  cordon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh scripts/check-cordon.sh
+
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+        working-directory: server
+      - run: npm test
+        working-directory: server
+
+  firmware:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: aura-link
+            board: xiao_nrf54lm20a/nrf54lm20a/cpuapp
+            extra: -DEXTRA_CONF_FILE=gw01.conf
+          - app: aura-tag
+            board: holyiot_25008_nrf54l15/nrf54l15/cpuapp
+            extra: ""
+    env:
+      NCS_REV: v3.3.4
+      ZEPHYR_SDK: 0.17.4
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: aetherfield }
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/ncs
+            ~/zephyr-sdk
+          key: ncs-${{ env.NCS_REV }}-sdk-${{ env.ZEPHYR_SDK }}
+      - name: SDK
+        run: |
+          pip install west
+          if [ ! -d ~/ncs/.west ]; then
+            west init -m https://github.com/nrfconnect/sdk-nrf --mr $NCS_REV ~/ncs
+            (cd ~/ncs && west update --narrow -o=--depth=1)
+          fi
+          pip install -r ~/ncs/zephyr/scripts/requirements-base.txt
+          if [ ! -d ~/zephyr-sdk ]; then
+            cd ~
+            curl -sSL https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v$ZEPHYR_SDK/zephyr-sdk-${ZEPHYR_SDK}_linux-x86_64_minimal.tar.xz | tar xJ
+            mv zephyr-sdk-$ZEPHYR_SDK zephyr-sdk
+            cd zephyr-sdk
+            curl -sSL https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v$ZEPHYR_SDK/toolchain_linux-x86_64_arm-zephyr-eabi.tar.xz | tar xJ
+            ./setup.sh -c
+          fi
+      - name: Build ${{ matrix.app }}
+        run: |
+          export ZEPHYR_SDK_INSTALL_DIR=~/zephyr-sdk
+          cd ~/ncs && source zephyr/zephyr-env.sh
+          west build -p always -b ${{ matrix.board }} -d $GITHUB_WORKSPACE/build \
+            $GITHUB_WORKSPACE/aetherfield/firmware/${{ matrix.app }} \
+            -- -DBOARD_ROOT=$GITHUB_WORKSPACE/aetherfield/firmware ${{ matrix.extra }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-hex
+          path: build/merged.hex

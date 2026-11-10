@@ -1,0 +1,29 @@
+/*
+ * Aura Tag on the stock HOLYIOT-25008.
+ *
+ * Battery: SAADC channel 0 reads the SoC's own VDD. The module has no
+ * regulator, so VDD is the CR2032 terminal voltage, with no divider and no pin.
+ * Gain 1/4 against the 0.9 V internal reference spans 0-3.6 V.
+ */
+#include <zephyr/dt-bindings/adc/nrf-saadc.h>
+
+/ {
+	zephyr,user {
+		io-channels = <&adc 0>;
+	};
+};
+
+&adc {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,input-positive = <NRF_SAADC_VDD>;
+		zephyr,resolution = <12>;
+	};
+};

@@ -1,0 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --bg: #ffffff;
+  --bg-page: #f7f8fa;
+  --bg-hover: #f0f1f4;
+  --bg-active: #e8eaef;
+  --border: #e2e4e9;
+  --border-light: #eff0f3;
+
+  --blue: #2563eb;
+  --blue-light: #dbeafe;
+  --blue-bg: #eff6ff;
+
+  --text: #1a1a2e;
+  --text-secondary: #525266;
+  --text-muted: #8e8ea0;
+  --text-placeholder: #b0b0bf;
+  --red: #dc2626;
+  --gold-light: #fef9c3;
+
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-xs: 4px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  min-height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg-page);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}

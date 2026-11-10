@@ -1,0 +1,67 @@
+/*
+ * Fallback board target: Seeed XIAO nRF54L15 + Adafruit W5500.
+ *
+ * Identical harness. The XIAO header pinout is the same physical connector on
+ * both boards, so nothing needs rewiring to swap between them — only the SoC
+ * pins behind those header positions differ:
+ *
+ *   header    nRF54L15        nRF54LM20A
+ *   D8  SCK   P2.01           P1.04
+ *   D9  MISO  P2.04           P1.05
+ *   D10 MOSI  P2.02           P1.06
+ *   D0  CS    P1.04           P1.00
+ *   D1  INT   P1.05           P1.31
+ *   D2  RST   P1.06           P1.30
+ *
+ * This target exists because the nRF54LM20A needs nRF Connect SDK 3.2.4 or
+ * later, and the radio code in main.c was proven on 3.0.1. Building here keeps
+ * the SDK constant while the Ethernet path is brought up, so a failure is
+ * unambiguously the new code rather than the new SDK.
+ *
+ * Power the breakout from 5V, not 3V3 — the W5500 pulls ~150 mA with the link
+ * up.
+ */
+
+/ {
+	chosen {
+		/* uart20 is bridged to USB-C by the onboard SAMD11. */
+		zephyr,console = &uart20;
+		zephyr,shell-uart = &uart20;
+	};
+};
+
+&pinctrl {
+	spi00_default: spi00_default {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 2, 1)>,    /* D8  */
+				<NRF_PSEL(SPIM_MOSI, 2, 2)>,   /* D10 */
+				<NRF_PSEL(SPIM_MISO, 2, 4)>;   /* D9  */
+		};
+	};
+
+	spi00_sleep: spi00_sleep {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 2, 1)>,
+				<NRF_PSEL(SPIM_MOSI, 2, 2)>,
+				<NRF_PSEL(SPIM_MISO, 2, 4)>;
+			low-power-enable;
+		};
+	};
+};
+
+&spi00 {
+	status = "okay";
+	pinctrl-0 = <&spi00_default>;
+	pinctrl-1 = <&spi00_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	cs-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;   /* D0 */
+
+	w5500: w5500@0 {
+		compatible = "aetherfield,w5500-raw";
+		reg = <0>;
+		spi-max-frequency = <16000000>;
+		int-gpios   = <&gpio1 5 GPIO_ACTIVE_LOW>;   /* D1 */
+		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;   /* D2 */
+	};
+};

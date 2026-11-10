@@ -1,0 +1,15 @@
+identifier: holyiot_25008_nrf54l15/nrf54l15/cpuapp
+name: Holyiot 25008 nRF54L15
+vendor: holyiot
+arch: arm
+toolchain:
+  - zephyr
+sysbuild: true
+ram: 188
+flash: 1428
+supported:
+  - counter
+  - gpio
+  - pwm
+  - spi
+  - watchdog

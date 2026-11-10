@@ -1,0 +1,598 @@
+/*
+ * Aetherfield gateway firmware (Seeed XIAO nRF54L15) - protocol v1
+ *
+ * RX: hardware PAN/address filtered (PAN 0xAE7F, addr 0x0001).
+ *     Parses v1 BEACON / EVENT / NODE_RELAY and prints "NODE: id=..."
+ *     lines on UART for the pi-bridge. Direct band traffic is printed
+ *     as id=0; relayed traffic uses the node's id.
+ * TX: v1 CMD frames (TLV blocks), broadcast, repeated 3x for reliability.
+ *
+ * Shell: aura/led/rate/mode (compatible with pi-bridge /api/led),
+ *        hop <ch>, promisc <0|1>, chan <ch>, info, stats, receive, sleep.
+ */
+
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+#include <zephyr/kernel.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_pkt.h>
+#include <zephyr/net/ieee802154_radio.h>
+#include <zephyr/net/ieee802154_pkt.h>
+#include <zephyr/shell/shell.h>
+#include <zephyr/shell/shell_uart.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/logging/log.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <nrf_802154.h>
+#include <nrf_802154_types.h>
+#include <aura_radio.h>
+
+LOG_MODULE_REGISTER(app, CONFIG_LOG_DEFAULT_LEVEL);
+
+#define MAX_FRAME_LEN   127
+#define FCS_LEN         2
+#define CMD_REPEATS     3
+#define CMD_REPEAT_GAP_MS 25
+#define HOP_REPEATS     5
+#define HOP_COUNTDOWN_MS 800
+
+/* Real RF switch (board dts): rfsw_pwr P2.03 powers the switch IC
+ * (regulator-boot-on, needs CONFIG_REGULATOR), rfsw_ctl P2.05 selects
+ * the antenna. We drive ctl by raw physical level to avoid active-low
+ * confusion; use the `ant` shell cmd to test which level radiates. */
+#define RFSW_CTL_NODE DT_NODELABEL(rfsw_ctl)
+
+/* Antenna select on rfsw_ctl (P2.05): 1 = external (u.FL/IPEX), 0 = onboard
+ * ceramic. We fit an external antenna, so default to 1. If range is poor,
+ * flip to 0 — confirm live first with the `ant 0/1` shell command. */
+#define RFSW_EXTERNAL_LEVEL 1
+
+static const struct gpio_dt_spec rfsw_gpio = {
+	.port = DEVICE_DT_GET(DT_GPIO_CTLR(RFSW_CTL_NODE, enable_gpios)),
+	.pin = DT_GPIO_PIN(RFSW_CTL_NODE, enable_gpios),
+	.dt_flags = DT_GPIO_FLAGS(RFSW_CTL_NODE, enable_gpios),
+};
+
+static const struct device *radio_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_ieee802154));
+static struct ieee802154_radio_api *radio_api;
+
+/* Current command state (mirrors what the shell last set) */
+static uint8_t led_r = 0, led_g = 0, led_b = 0;
+static uint8_t mode = 1;
+static uint8_t rate = 100;
+
+static uint8_t g_mac_seq = 0;
+static uint8_t g_app_seq = 0;
+static uint8_t g_channel = AURA_CHANNEL_DEFAULT;
+static uint32_t g_rx_count = 0;
+static uint32_t g_rx_v1_count = 0;
+static bool g_promiscuous = false;
+
+/* ------------------------------------------------------------------ */
+/* RX path (raw mode: driver delivers full PSDUs to net_recv_data)     */
+/* ------------------------------------------------------------------ */
+
+static const char *gesture_name_from_code(uint8_t gesture_code)
+{
+	switch (gesture_code) {
+	case 0: return "idle";
+	case 1: return "unknown";
+	case 2: return "clap";
+	case 3: return "gesture_3";
+	case 4: return "gesture_4";
+	case 5: return "gesture_5";
+	case 6: return "gesture_6";
+	default: return "invalid";
+	}
+}
+
+static void print_band_state(uint8_t node_id, uint16_t band_addr, int rssi_dbm,
+			     uint8_t caps, uint8_t battery, uint8_t gesture)
+{
+	/* Console is routed to uart21 (the Pi link) via the board overlay, so this
+	 * printk reaches the bridge. Format consumed by pi-bridge parseTelemetryLine();
+	 * keep "NODE: id=", "UUID: 0x", "RSSI:" and "Gesture: name (code)". */
+	printk("NODE: id=%u UUID: 0x%08X RSSI: %d Caps: 0x%02X Batt: %u Gesture: %s (%u)\n",
+	       (unsigned int)node_id, (unsigned int)band_addr, rssi_dbm,
+	       (unsigned int)caps, (unsigned int)battery,
+	       gesture_name_from_code(gesture), (unsigned int)gesture);
+}
+
+static bool process_v1_frame(const uint8_t *frame, uint8_t len, int8_t power)
+{
+	uint16_t src, dst;
+
+	if (!aura_mhr_parse(frame, len, &src, &dst)) {
+		return false;
+	}
+
+	uint8_t seq;
+	int type = aura_hdr_parse(frame + AURA_MHR_LEN, len - AURA_MHR_LEN, &seq);
+
+	if (type < 0) {
+		return false;
+	}
+
+	const uint8_t *body = frame + AURA_MHR_LEN + AURA_HDR_LEN;
+	/* May include 2 trailing FCS bytes depending on driver config;
+	 * fixed-size body checks below make that harmless. */
+	int body_len = (int)len - AURA_MHR_LEN - AURA_HDR_LEN;
+
+	g_rx_v1_count++;
+
+	switch (type) {
+	case AURA_MSG_BEACON:
+		if (body_len >= AURA_BEACON_BODY_LEN) {
+			print_band_state(0, src, (int)power,
+					 body[0], body[1], body[2]);
+			return true;
+		}
+		break;
+	case AURA_MSG_EVENT:
+		if (body_len >= AURA_EVENT_BODY_LEN && body[0] == AURA_EVENT_GESTURE) {
+			print_band_state(0, src, (int)power, 0,
+					 AURA_BATTERY_UNKNOWN, body[1]);
+			return true;
+		}
+		if (body_len >= AURA_EVENT_BODY_LEN && body[0] == AURA_EVENT_BUTTON) {
+			printk("EVENT: band=0x%04X button action=%u\n", src, body[1]);
+			return true;
+		}
+		break;
+	case AURA_MSG_NODE_RELAY:
+		if (body_len >= AURA_NODE_RELAY_HDR_LEN && aura_addr_is_node(src)) {
+			uint16_t band = (uint16_t)(body[0] | (body[1] << 8));
+			int rssi_at_node = aura_rssi_decode(body[2]);
+			uint8_t relayed_type = body[3];
+			uint8_t node_id = (uint8_t)(src - AURA_ADDR_NODE_BASE + 1);
+			const uint8_t *rbody = body + AURA_NODE_RELAY_HDR_LEN;
+			int rbody_len = body_len - AURA_NODE_RELAY_HDR_LEN;
+
+			if (relayed_type == AURA_MSG_BEACON &&
+			    rbody_len >= AURA_BEACON_BODY_LEN) {
+				print_band_state(node_id, band, rssi_at_node,
+						 rbody[0], rbody[1], rbody[2]);
+			} else if (relayed_type == AURA_MSG_EVENT &&
+				   rbody_len >= AURA_EVENT_BODY_LEN) {
+				print_band_state(node_id, band, rssi_at_node,
+						 0, AURA_BATTERY_UNKNOWN, rbody[1]);
+			} else {
+				print_band_state(node_id, band, rssi_at_node,
+						 0, AURA_BATTERY_UNKNOWN, 0);
+			}
+			return true;
+		}
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
+#if AURA_ACCEPT_WRISTBAND_AT_GATEWAY
+/* Legacy v0 frames (pre-v1 bands). Only reachable in promiscuous mode:
+ * their PAN 0x1234 / malformed FCF are rejected by hardware filtering. */
+static bool process_v0_frame(const uint8_t *frame, uint8_t len, int8_t power)
+{
+	if (len < AURA_MHR_LEN + 3) {
+		return false;
+	}
+	const uint8_t *payload = frame + AURA_MHR_LEN;
+
+	if (payload[0] == AURA_PAYLOAD_UUID_BC) {
+		printk("UUID: 0x%08X RSSI: %d Gesture: %s (%u) [v0]\n",
+		       (unsigned int)payload[1], (int)power,
+		       gesture_name_from_code(payload[2]), (unsigned int)payload[2]);
+		return true;
+	}
+	if (payload[0] == AURA_PAYLOAD_NODE_RELAY &&
+	    len >= AURA_MHR_LEN + AURA_NODE_RELAY_PSDU_LEN) {
+		printk("NODE: id=%u UUID: 0x%08X RSSI: %d Gesture: %s (%u)\n",
+		       (unsigned int)payload[1], (unsigned int)payload[2],
+		       aura_rssi_decode(payload[4]),
+		       gesture_name_from_code(payload[3]), (unsigned int)payload[3]);
+		return true;
+	}
+	return false;
+}
+#endif
+
+/* Raw-mode hooks: same mechanism as the band firmware. The driver calls
+ * net_recv_data() with the full PSDU (no L2 in between). */
+enum net_verdict ieee802154_handle_ack(struct net_if *iface, struct net_pkt *pkt)
+{
+	ARG_UNUSED(iface);
+	ARG_UNUSED(pkt);
+	return NET_DROP;
+}
+
+int net_recv_data(struct net_if *iface, struct net_pkt *pkt)
+{
+	ARG_UNUSED(iface);
+
+	if (!pkt || net_pkt_is_empty(pkt)) {
+		return -EINVAL;
+	}
+
+	uint8_t *psdu = net_buf_frag_last(pkt->buffer)->data;
+	size_t length = net_buf_frags_len(pkt->buffer);
+	int8_t rssi = net_pkt_ieee802154_rssi_dbm(pkt);
+
+	g_rx_count++;
+
+	if (length <= MAX_FRAME_LEN) {
+		if (!process_v1_frame(psdu, (uint8_t)length, rssi)) {
+#if AURA_ACCEPT_WRISTBAND_AT_GATEWAY
+			process_v0_frame(psdu, (uint8_t)length, rssi);
+#endif
+		}
+	}
+
+	net_pkt_unref(pkt);
+	return 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* TX path                                                             */
+/* ------------------------------------------------------------------ */
+
+static int aura_tx_raw(const uint8_t *frame, uint8_t len)
+{
+	struct net_pkt *pkt = net_pkt_alloc(K_NO_WAIT);
+
+	if (!pkt) {
+		return -ENOMEM;
+	}
+	if (net_pkt_alloc_buffer_raw(pkt, len, K_NO_WAIT) < 0) {
+		net_pkt_unref(pkt);
+		return -ENOMEM;
+	}
+	net_pkt_cursor_init(pkt);
+	if (net_pkt_write(pkt, frame, len) != 0) {
+		net_pkt_unref(pkt);
+		return -EIO;
+	}
+
+	int err = radio_api->tx(radio_dev, IEEE802154_TX_MODE_DIRECT, pkt, pkt->buffer);
+
+	net_pkt_unref(pkt);
+	return err;
+}
+
+/* Broadcast frame, repeated for reliability (devices dedupe on app seq). */
+static void aura_tx_repeated(const uint8_t *frame, uint8_t len, int repeats,
+			     int gap_ms)
+{
+	for (int i = 0; i < repeats; i++) {
+		int err = aura_tx_raw(frame, len);
+
+		if (err) {
+			printk("TX failed (%d/%d): %d\n", i + 1, repeats, err);
+		}
+		if (i < repeats - 1) {
+			k_msleep(gap_ms);
+		}
+	}
+	/* Return to RX after the burst */
+	nrf_802154_receive();
+}
+
+static void send_cmd_led(void)
+{
+	uint8_t frame[AURA_MHR_LEN + AURA_HDR_LEN + 2 + AURA_TLV_LED_LEN];
+	uint8_t *p = aura_mhr_write(frame, g_mac_seq++, AURA_ADDR_BROADCAST,
+				    AURA_ADDR_GATEWAY);
+
+	aura_hdr_write(p, AURA_MSG_CMD, g_app_seq);
+	p += AURA_HDR_LEN;
+
+	uint8_t led[AURA_TLV_LED_LEN] = { mode, rate, led_r, led_g, led_b };
+
+	p = aura_tlv_write(p, AURA_TLV_LED, led, AURA_TLV_LED_LEN);
+
+	aura_tx_repeated(frame, (uint8_t)(p - frame), CMD_REPEATS, CMD_REPEAT_GAP_MS);
+	printk("CMD seq=%u: LED mode=%u rate=%u rgb=(%u,%u,%u)\n",
+	       g_app_seq, mode, rate, led_r, led_g, led_b);
+	g_app_seq++;
+}
+
+static void send_net_hop(uint8_t new_channel)
+{
+	for (int i = 0; i < HOP_REPEATS; i++) {
+		uint8_t frame[AURA_MHR_LEN + AURA_HDR_LEN + 2 + AURA_TLV_CHANNEL_HOP_LEN];
+		uint8_t *p = aura_mhr_write(frame, g_mac_seq++, AURA_ADDR_BROADCAST,
+					    AURA_ADDR_GATEWAY);
+
+		/* Same app seq for all repeats; devices arm the hop once. */
+		aura_hdr_write(p, AURA_MSG_NET, g_app_seq);
+		p += AURA_HDR_LEN;
+
+		uint16_t countdown = HOP_COUNTDOWN_MS - (i * 100);
+		uint8_t hop[AURA_TLV_CHANNEL_HOP_LEN] = {
+			new_channel,
+			(uint8_t)(countdown & 0xFF),
+			(uint8_t)(countdown >> 8),
+		};
+
+		p = aura_tlv_write(p, AURA_TLV_CHANNEL_HOP, hop,
+				   AURA_TLV_CHANNEL_HOP_LEN);
+		aura_tx_raw(frame, (uint8_t)(p - frame));
+		k_msleep(100);
+	}
+	g_app_seq++;
+
+	k_msleep(HOP_COUNTDOWN_MS - (HOP_REPEATS - 1) * 100 + 50);
+	g_channel = new_channel;
+	radio_api->set_channel(radio_dev, g_channel);
+	nrf_802154_receive();
+	printk("Hopped to channel %u\n", g_channel);
+}
+
+/* ------------------------------------------------------------------ */
+/* Shell commands                                                      */
+/* ------------------------------------------------------------------ */
+
+static int cmd_led(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc != 4) {
+		shell_print(shell, "Usage: led <R> <G> <B>");
+		return -EINVAL;
+	}
+	led_r = (uint8_t)atoi(argv[1]);
+	led_g = (uint8_t)atoi(argv[2]);
+	led_b = (uint8_t)atoi(argv[3]);
+	shell_print(shell, "LED set to: R=%d G=%d B=%d", led_r, led_g, led_b);
+	send_cmd_led();
+	return 0;
+}
+
+static int cmd_aura(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc != 6) {
+		shell_print(shell, "Usage: aura <MODE> <RATE> <R> <G> <B>");
+		return -EINVAL;
+	}
+	mode = (uint8_t)atoi(argv[1]);
+	rate = (uint8_t)atoi(argv[2]);
+	led_r = (uint8_t)atoi(argv[3]);
+	led_g = (uint8_t)atoi(argv[4]);
+	led_b = (uint8_t)atoi(argv[5]);
+	shell_print(shell, "AURA set: MODE=%d RATE=%d R=%d G=%d B=%d",
+		    mode, rate, led_r, led_g, led_b);
+	send_cmd_led();
+	return 0;
+}
+
+static int cmd_rate(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc != 2) {
+		shell_print(shell, "Usage: rate <RATE>");
+		return -EINVAL;
+	}
+	rate = (uint8_t)atoi(argv[1]);
+	shell_print(shell, "Rate set to: %d", rate);
+	return 0;
+}
+
+static int cmd_mode(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc != 2) {
+		shell_print(shell, "Usage: mode <MODE>");
+		return -EINVAL;
+	}
+	mode = (uint8_t)atoi(argv[1]);
+	shell_print(shell, "Mode set to: %d", mode);
+	return 0;
+}
+
+static int cmd_hop(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc != 2) {
+		shell_print(shell, "Usage: hop <channel 11-26>");
+		return -EINVAL;
+	}
+	int ch = atoi(argv[1]);
+
+	if (ch < 11 || ch > 26) {
+		shell_print(shell, "Channel must be 11-26");
+		return -EINVAL;
+	}
+	shell_print(shell, "Hopping network to channel %d...", ch);
+	send_net_hop((uint8_t)ch);
+	return 0;
+}
+
+static int cmd_chan(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc != 2) {
+		shell_print(shell, "Usage: chan <channel 11-26> (local only, no NET msg)");
+		return -EINVAL;
+	}
+	int ch = atoi(argv[1]);
+
+	if (ch < 11 || ch > 26) {
+		return -EINVAL;
+	}
+	g_channel = (uint8_t)ch;
+	radio_api->set_channel(radio_dev, g_channel);
+	nrf_802154_receive();
+	shell_print(shell, "Local channel set to %d", ch);
+	return 0;
+}
+
+static int cmd_promisc(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc != 2) {
+		shell_print(shell, "Usage: promisc <0|1>");
+		return -EINVAL;
+	}
+	g_promiscuous = (atoi(argv[1]) != 0);
+
+	struct ieee802154_config config = { .promiscuous = g_promiscuous };
+
+	radio_api->configure(radio_dev, IEEE802154_CONFIG_PROMISCUOUS, &config);
+	nrf_802154_promiscuous_set(g_promiscuous);
+	shell_print(shell, "Promiscuous mode %s", g_promiscuous ? "ON (debug)" : "OFF (HW filtering)");
+	return 0;
+}
+
+static int cmd_ant(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc != 2) {
+		shell_print(shell, "Usage: ant <0|1>  (raw level on rfsw_ctl P2.05)");
+		return -EINVAL;
+	}
+	int level = (argv[1][0] == '1') ? 1 : 0;
+
+	if (!gpio_is_ready_dt(&rfsw_gpio)) {
+		shell_print(shell, "RF switch GPIO not ready");
+		return -ENODEV;
+	}
+	gpio_pin_configure(rfsw_gpio.port, rfsw_gpio.pin, GPIO_OUTPUT);
+	gpio_pin_set_raw(rfsw_gpio.port, rfsw_gpio.pin, level);
+	shell_print(shell, "rfsw_ctl physical level = %d", level);
+	return 0;
+}
+
+static int cmd_receive(const struct shell *shell, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+	radio_api->start(radio_dev);
+	nrf_802154_receive();
+	shell_print(shell, "Radio set to receive mode");
+	return 0;
+}
+
+static int cmd_sleep(const struct shell *shell, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+	radio_api->stop(radio_dev);
+	shell_print(shell, "Radio stopped (sleep mode)");
+	return 0;
+}
+
+static int cmd_stats(const struct shell *shell, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+	shell_print(shell, "RX total: %u (v1: %u)", g_rx_count, g_rx_v1_count);
+	return 0;
+}
+
+static int cmd_info(const struct shell *shell, size_t argc, char **argv)
+{
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+	shell_print(shell, "PAN: 0x%04X  addr: 0x%04X  channel: %u  promisc: %d",
+		    AURA_PAN_ID, AURA_ADDR_GATEWAY, g_channel, (int)g_promiscuous);
+	return 0;
+}
+
+/* ------------------------------------------------------------------ */
+
+int main(void)
+{
+	int ret;
+
+	/* RF switch: rfsw_pwr + rfsw_ctl are regulator-boot-on, enabled by the
+	 * regulator driver before main(). Select the external antenna at boot
+	 * (we fit a u.FL/IPEX antenna); override live with the `ant` shell cmd. */
+	ARG_UNUSED(ret);
+	if (gpio_is_ready_dt(&rfsw_gpio)) {
+		gpio_pin_configure(rfsw_gpio.port, rfsw_gpio.pin, GPIO_OUTPUT);
+		gpio_pin_set_raw(rfsw_gpio.port, rfsw_gpio.pin, RFSW_EXTERNAL_LEVEL);
+		printk("Antenna: external (rfsw_ctl level %d)\n", RFSW_EXTERNAL_LEVEL);
+	} else {
+		printk("RF switch GPIO not ready; antenna at boot-on default\n");
+	}
+
+	radio_api = (struct ieee802154_radio_api *)radio_dev->api;
+	if (!radio_api) {
+		printk("Failed to get radio API\n");
+		return -1;
+	}
+
+	/* Hardware filtering: PAN + short address (replaces promiscuous mode).
+	 * Program the nRF driver PIB directly - the portable filter() API can
+	 * be a no-op and the 802.15.4 L2 may override it. */
+	static const uint8_t pan_le[2] = {
+		AURA_PAN_ID & 0xFF, AURA_PAN_ID >> 8
+	};
+	static const uint8_t short_le[2] = {
+		AURA_ADDR_GATEWAY & 0xFF, AURA_ADDR_GATEWAY >> 8
+	};
+	static const uint8_t ext_addr[8] = {
+		AURA_ADDR_GATEWAY & 0xFF, AURA_ADDR_GATEWAY >> 8,
+		0xAE, 0x7F, 0xAE, 0x7F, 0xAE, 0x7F
+	};
+
+	nrf_802154_pan_id_set(pan_le);
+	nrf_802154_short_address_set(short_le);
+	nrf_802154_extended_address_set(ext_addr);
+
+	struct ieee802154_config config = { .promiscuous = false };
+
+	radio_api->configure(radio_dev, IEEE802154_CONFIG_PROMISCUOUS, &config);
+	nrf_802154_promiscuous_set(false);
+
+#if !IS_ENABLED(CONFIG_NRF_802154_SERIALIZATION)
+	nrf_802154_auto_ack_set(false);
+#endif
+
+	radio_api->set_channel(radio_dev, g_channel);
+	nrf_802154_tx_power_set(AURA_TX_POWER_DBM);
+
+	radio_api->start(radio_dev);
+	nrf_802154_receive();
+
+	printk("Aetherfield gateway v1: PAN=0x%04X addr=0x%04X ch=%u txpwr=%ddBm\n",
+	       AURA_PAN_ID, AURA_ADDR_GATEWAY, g_channel, AURA_TX_POWER_DBM);
+
+	uint32_t last_rx_count = 0;
+	uint32_t check = 0;
+
+	while (1) {
+		if (mode == 187) {
+			send_cmd_led();
+			k_msleep(500);
+		} else {
+			k_msleep(1000);
+		}
+
+		/* Watchdog: restart radio if RX stalls */
+		if (++check >= 5) {
+			check = 0;
+			if (g_rx_count == last_rx_count && g_rx_count > 0) {
+				printk("No new packets (total: %u), restarting radio...\n",
+				       g_rx_count);
+				radio_api->stop(radio_dev);
+				k_msleep(100);
+				radio_api->start(radio_dev);
+			}
+			nrf_802154_receive();
+			last_rx_count = g_rx_count;
+		}
+	}
+	return 0;
+}
+
+SHELL_CMD_ARG_REGISTER(led, NULL, "Set LED color: led <R> <G> <B>", cmd_led, 4, 0);
+SHELL_CMD_ARG_REGISTER(aura, NULL, "Set AURA: aura <MODE> <RATE> <R> <G> <B>", cmd_aura, 6, 0);
+SHELL_CMD_ARG_REGISTER(rate, NULL, "Set RATE: rate <RATE>", cmd_rate, 2, 0);
+SHELL_CMD_ARG_REGISTER(mode, NULL, "Set MODE: mode <MODE>", cmd_mode, 2, 0);
+SHELL_CMD_ARG_REGISTER(hop, NULL, "Hop network to channel: hop <11-26>", cmd_hop, 2, 0);
+SHELL_CMD_ARG_REGISTER(chan, NULL, "Set local channel: chan <11-26>", cmd_chan, 2, 0);
+SHELL_CMD_ARG_REGISTER(promisc, NULL, "Promiscuous debug mode: promisc <0|1>", cmd_promisc, 2, 0);
+SHELL_CMD_ARG_REGISTER(ant, NULL, "Select antenna: ant <onboard|ext>", cmd_ant, 2, 0);
+SHELL_CMD_ARG_REGISTER(receive, NULL, "Put radio in receive state", cmd_receive, 1, 0);
+SHELL_CMD_ARG_REGISTER(sleep, NULL, "Disable the radio", cmd_sleep, 1, 0);
+SHELL_CMD_ARG_REGISTER(stats, NULL, "Show receive statistics", cmd_stats, 1, 0);
+SHELL_CMD_ARG_REGISTER(info, NULL, "Show radio config", cmd_info, 1, 0);

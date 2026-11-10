@@ -1,0 +1,12 @@
+# AURA IMU-visualiser defaults — Waveshare ESP32-C6-Touch-AMOLED-2.06
+CONFIG_IDF_TARGET="esp32c6"
+
+# Smooth animation timing
+CONFIG_FREERTOS_HZ=1000
+
+# Board has 16MB flash
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+
+# Squeeze the per-pixel renderer
+CONFIG_COMPILER_OPTIMIZATION_PERF=y

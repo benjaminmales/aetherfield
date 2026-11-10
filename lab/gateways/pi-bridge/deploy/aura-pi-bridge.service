@@ -1,0 +1,15 @@
+[Unit]
+Description=AURA gateway Pi bridge
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/aetherfield-platform/GATEWAY/pi-bridge
+EnvironmentFile=-/home/pi/aetherfield-platform/GATEWAY/pi-bridge/.env
+ExecStart=/usr/bin/node /home/pi/aetherfield-platform/GATEWAY/pi-bridge/server.js
+Restart=always
+RestartSec=3
+User=pi
+
+[Install]
+WantedBy=multi-user.target

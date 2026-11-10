@@ -1,0 +1,362 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "25fa10d9-804e-433e-b228-809efe369ca3")
+	(paper "A4")
+	(lib_symbols)
+	(wire
+		(pts
+			(xy 114.3 73.66) (xy 119.38 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "27a11ad6-577e-4fec-aacb-e4c9523bdcd3")
+	)
+	(wire
+		(pts
+			(xy 111.76 76.2) (xy 119.38 76.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4ce0fe59-04b3-4998-bb3d-404b85568240")
+	)
+	(wire
+		(pts
+			(xy 88.9 78.74) (xy 119.38 78.74)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5a2c76de-d8b1-4833-b838-296a9e6754d3")
+	)
+	(wire
+		(pts
+			(xy 111.76 60.96) (xy 111.76 76.2)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "61e94d0a-d4b6-4dbc-87ff-144306b11ca9")
+	)
+	(wire
+		(pts
+			(xy 88.9 93.98) (xy 119.38 93.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9113193b-7162-4762-b90b-4a7b03c18d06")
+	)
+	(wire
+		(pts
+			(xy 88.9 60.96) (xy 111.76 60.96)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "94277cfb-354e-4d57-becf-e51f43958630")
+	)
+	(wire
+		(pts
+			(xy 88.9 96.52) (xy 119.38 96.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ab25127b-767c-4db9-a9ff-594e1c2257c9")
+	)
+	(wire
+		(pts
+			(xy 114.3 58.42) (xy 114.3 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b9b98a04-f720-49ac-bf9c-b244c33dc24c")
+	)
+	(wire
+		(pts
+			(xy 88.9 58.42) (xy 114.3 58.42)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e2dba83b-eea0-47e9-95f6-fb8f4a2ed839")
+	)
+	(sheet
+		(at 119.38 91.44)
+		(size 17.78 7.62)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 194 0 1)
+		)
+		(uuid "74a30250-5585-4759-8bdf-a61ea1cf2eaf")
+		(property "Sheetname" "Power"
+			(at 119.38 90.7284 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Power.kicad_sch"
+			(at 119.38 99.6446 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "VBAT_ADC" output
+			(at 119.38 96.52 180)
+			(uuid "223a6538-2560-475c-a39d-c1f4ff2b3009")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "BAT1_~{BAT2}" output
+			(at 119.38 93.98 180)
+			(uuid "bf74c5d0-78ba-46a1-958b-1abe646f4a14")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(instances
+			(project "Aura-Lite"
+				(path "/25fa10d9-804e-433e-b228-809efe369ca3"
+					(page "6")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 119.38 72.39)
+		(size 17.78 11.43)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 194 0 1)
+		)
+		(uuid "d482a93f-62e3-4323-9b14-6e29617a0299")
+		(property "Sheetname" "Sensors"
+			(at 119.38 71.6784 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Sensors.kicad_sch"
+			(at 119.38 84.4046 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "SDA" bidirectional
+			(at 119.38 76.2 180)
+			(uuid "3a4d6f11-3a51-4f93-931a-cb8aa3032621")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "SCL" input
+			(at 119.38 73.66 180)
+			(uuid "99207cb1-b714-4724-bf60-5497b62d61f0")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(pin "~{INT}" output
+			(at 119.38 78.74 180)
+			(uuid "d3b9d4a4-e1cc-4b71-b2d0-61aaf850dcde")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(instances
+			(project "Aura-Lite"
+				(path "/25fa10d9-804e-433e-b228-809efe369ca3"
+					(page "7")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 50.8 50.8)
+		(size 38.1 48.26)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 194 0 1)
+		)
+		(uuid "db8ba6fb-5e84-462c-a86c-6ff5512d6aa5")
+		(property "Sheetname" "nRF54L05-QDXX"
+			(at 50.8 50.0884 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "mainDesign.kicad_sch"
+			(at 50.8 99.6446 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(pin "P1.11-SCL" output
+			(at 88.9 58.42 0)
+			(uuid "8c00fa23-4cdd-4e7a-8ec7-87107ed84891")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "P1.02" bidirectional
+			(at 88.9 93.98 0)
+			(uuid "38e02b0b-189e-42ef-8054-ceea248a4a36")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "P1.13-SDA" bidirectional
+			(at 88.9 60.96 0)
+			(uuid "04a9d1f6-372f-4b22-9311-3f8cdcd103f1")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "P1.06" bidirectional
+			(at 88.9 53.34 0)
+			(uuid "c20fb67f-609f-4bf3-8001-bf9467f09ed3")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "P1.05" bidirectional
+			(at 88.9 96.52 0)
+			(uuid "952d0bff-8ad6-435b-b446-d68d6212a566")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "P1.03" bidirectional
+			(at 88.9 78.74 0)
+			(uuid "d9f59f57-96a4-4e74-98f7-edbb4e6b555c")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "P1.04" bidirectional
+			(at 88.9 81.28 0)
+			(uuid "8790d6f7-def1-46e5-a02a-640e20df307b")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(instances
+			(project "Aura-Lite"
+				(path "/25fa10d9-804e-433e-b228-809efe369ca3"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)

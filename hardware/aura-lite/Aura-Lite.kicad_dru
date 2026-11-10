@@ -1,0 +1,4 @@
+(version 1)
+(rule "S50 to Zone Clearance"
+    (constraint clearance (min 0.6mm))
+    (condition "A.hasNetclass('S50') && B.Type == 'Zone'"))

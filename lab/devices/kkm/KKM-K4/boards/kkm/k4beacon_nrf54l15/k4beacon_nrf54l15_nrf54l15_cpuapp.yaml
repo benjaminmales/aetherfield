@@ -1,0 +1,12 @@
+identifier: k4beacon_nrf54l15/nrf54l15/cpuapp
+name: KKM K4 Beacon nRF54L15
+vendor: kkm
+arch: arm
+toolchain:
+  - zephyr
+sysbuild: true
+ram: 188
+flash: 1428
+supported:
+  - gpio
+  - pwm

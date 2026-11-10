@@ -1,0 +1,13 @@
+/* Production: console + shell back on uart21 (P2.07/P2.08 = D6/D7 header
+ * pins) for the wired link to the Raspberry Pi bridge. Nothing appears on
+ * the XIAO's USB port with this built in.
+ *
+ *   west build -b xiao_nrf54l15/nrf54l15/cpuapp . -d build-pi -p \
+ *     -- -DEXTRA_DTC_OVERLAY_FILE=pi.overlay
+ */
+/ {
+	chosen {
+		zephyr,console = &uart21;
+		zephyr,shell-uart = &uart21;
+	};
+};

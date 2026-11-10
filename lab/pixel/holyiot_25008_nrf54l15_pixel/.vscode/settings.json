@@ -1,0 +1,18 @@
+{
+  // The nRF Connect extension only reads board roots from here — not from
+  // CMakeLists.txt, and not from a parent folder's settings. Every application
+  // folder you open in VS Code needs its own copy, which is exactly the trap
+  // that made holyiot_25008_nrf54l15 vanish from the board picker while the
+  // gateway (which has this file) found it fine.
+  //
+  // This is the directory CONTAINING boards/, not boards/ itself:
+  //   firmware/boards/holyiot/holyiot_25008_nrf54l15/
+  //   ^------^ board root
+  //
+  // NOTE: NCS 3.3.4 also ships an UPSTREAM holyiot board. In the picker:
+  //   holyiot_25008/nrf54l15/cpuapp            <- upstream. No led-hb alias.
+  //   holyiot_25008_nrf54l15/nrf54l15/cpuapp   <- ours. Pick this one.
+  "nrf-connect.boardRoots": [
+    "/Users/benjaminmales/aetherfield/firmware", "/Users/benjaminmales/aetherfield/lab"
+  ]
+}

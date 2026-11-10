@@ -1,0 +1,6 @@
+board:
+  name: k4beacon_nrf54l15
+  full_name: KKM K4 Beacon nRF54L15
+  vendor: kkm
+  socs:
+    - name: nrf54l15

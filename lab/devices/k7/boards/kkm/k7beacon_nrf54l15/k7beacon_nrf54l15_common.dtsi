@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "k7beacon_nrf54l15-pinctrl.dtsi"
+#include <zephyr/dt-bindings/pwm/pwm.h>
+
+/ {
+	/*
+	 * Single RGB LED (LTST-C19HE1WT-H), common-anode tied to VDDS.
+	 * Driving a channel low turns it on, so PWM uses INVERTED polarity:
+	 * brightness 0 % = fully off, 100 % = fully on.
+	 *
+	 * led_set_brightness() index follows child declaration order:
+	 *   index 0 = red, 1 = green, 2 = blue.
+	 */
+	pwmleds: pwmleds {
+		compatible = "pwm-leds";
+
+		led_red: led_red {
+			pwms = <&pwm20 1 PWM_MSEC(20) PWM_POLARITY_INVERTED>;
+			label = "RGB Red";
+		};
+
+		led_green: led_green {
+			pwms = <&pwm20 0 PWM_MSEC(20) PWM_POLARITY_INVERTED>;
+			label = "RGB Green";
+		};
+
+		led_blue: led_blue {
+			pwms = <&pwm20 2 PWM_MSEC(20) PWM_POLARITY_INVERTED>;
+			label = "RGB Blue";
+		};
+	};
+
+	aliases {
+		led0 = &led_red;
+		led-red = &led_red;
+		led-green = &led_green;
+		led-blue = &led_blue;
+		pwm-led0 = &led_red;
+	};
+};
+
+&uart20 {
+	current-speed = <115200>;
+	pinctrl-0 = <&uart20_default>;
+	pinctrl-1 = <&uart20_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&pwm20 {
+	pinctrl-0 = <&pwm20_default>;
+	pinctrl-1 = <&pwm20_sleep>;
+	pinctrl-names = "default", "sleep";
+};

@@ -1,0 +1,177 @@
+/* SPDX-License-Identifier: LicenseRef-Nordic-5-Clause */
+
+/ {    
+    leds {
+        compatible = "gpio-leds";
+        
+        led0: led_0 {
+			gpios = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+			label = "led green";
+		};
+        
+        led1: led_1 {
+			gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;
+			label = "led red";
+		};
+	};
+    
+    buttons {
+		compatible = "gpio-keys";
+		button0: button_0 {
+			gpios = <&gpio0 4 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Push button 0";
+		};
+	};
+    
+    zephyr,user {
+		io-channels = <&adc 2>;
+	};
+    
+     accints {
+		compatible = "gpio-keys";
+		accint0: accint_0 {
+			gpios = <&gpio1 13 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "acc int 0";
+		};
+        
+        accint1: accint_1 {
+			gpios = <&gpio1 14 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "acc int 1";
+		};
+	};
+        
+ 
+    aliases {
+        led0 = &led0;
+        led1 = &led1;
+        sw0 = &button0;
+		accint0 = &accint0;
+		accint1 = &accint1;
+		acci2c = &i2c21;
+	};
+};
+
+&gpio0 {
+    sense-edge-mask = <((1 << 4))>;
+};
+
+&gpio1 {
+    sense-edge-mask = <((1 << 13) | (1 << 14))>;
+};
+
+&lfxo{
+    load-capacitors = "internal";
+    load-capacitance-femtofarad=<14000>;
+};
+
+
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@2 {
+		reg = <2>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,input-positive = <NRF_SAADC_VDD>; /* P1.11 */
+		zephyr,resolution = <12>;
+		zephyr,oversampling = <8>;
+	};
+};
+
+
+&i2c21 {
+	compatible = "nordic,nrf-twim";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c21_default_alt>;
+	pinctrl-1 = <&i2c21_sleep_alt>;
+	pinctrl-names = "default", "sleep";
+
+};
+
+
+&pinctrl {
+	i2c21_default_alt: i2c21_default_alt {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 1, 6)>,
+				<NRF_PSEL(TWIM_SCL, 1, 8)>;
+			bias-pull-up;
+		};
+	};
+
+	i2c21_sleep_alt: i2c21_sleep_alt {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 1, 6)>,
+				<NRF_PSEL(TWIM_SCL, 1, 8)>;
+			low-power-enable;
+		};
+	};
+};
+
+/* Disable NFCT on P1.02 and P1.03 only nrf54l15dk/nrf54l15/cpuapp*/
+&uicr {
+	nfct-pins-as-gpios;
+};
+
+
+&led2 {
+    status = "disabled";
+};
+
+&led3 {
+    status = "disabled";
+};
+
+&button0 {
+	status = "okay";
+};
+
+&button1 {
+	status = "disabled";
+};
+
+&button2 {
+	status = "disabled";
+};
+
+&button3 {
+    status = "disabled";
+};
+
+&uart30
+{
+    status = "disabled";
+};
+
+&uart20
+{
+	// disable-rx;
+	status = "disabled";
+};
+
+&wdt31 {
+    status = "okay";
+};
+
+&uart21 {
+    status = "disabled"; 
+};
+
+&spi21
+{
+	status = "disabled";
+};
+
+&spi00 {
+    status = "disabled";
+};
+
+&pwm21
+{
+	status = "disabled";
+};
+
+

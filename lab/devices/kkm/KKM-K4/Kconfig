@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: Apache-2.0
+
+choice K4_APP
+	prompt "K4 application"
+	default K4_APP_BEACON
+
+config K4_APP_BEACON
+	bool "Aetherfield v2 band (default)"
+	help
+	  Joins the fleet using the shared AURA/common/aura_band.c and paints
+	  the commanded colour onto both red LEDs. Watch for it on the gateway
+	  console; drive it with `aura color` / `aura anim`.
+
+config K4_APP_PINPROBE
+	bool "Radio-narrated GPIO pin probe"
+	help
+	  Beacons normally AND walks every GPIO, announcing each pin over the
+	  radio just before driving it. Watch the LED, read the pin off the
+	  gateway log. Needs no console and no schematic.
+
+config K4_APP_SWEEP
+	bool "Offline GPIO pin sweep"
+	help
+	  Timed walk of all 32 GPIOs, radio off, read with a stopwatch.
+	  Pair with overlays/sweep.overlay. Superseded by the radio probe.
+
+config K4_APP_BREATHE
+	bool "Hello world: pulse one LED"
+	help
+	  Identifies both LEDs with a flash count, then breathes one of them.
+	  Radio off.
+
+endchoice
+
+config K4_BREATHE_D2
+	bool "Breathe D2 (P2.03) instead of D1 (P1.04)"
+	depends on K4_APP_BREATHE
+	help
+	  Which LED the hello-world breathes. D1 is the default on the
+	  assumption that it is the top one; the app's boot flashes identify
+	  both, so switch here if the count says otherwise.
+
+
+source "Kconfig.zephyr"

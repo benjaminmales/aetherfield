@@ -1,0 +1,18 @@
+/*
+ * Switch the LF clock from the internal RC to the fitted 32.768 kHz crystal
+ * (X1, 7 pF, +/-20 ppm on P1.00/XL1 + P1.01/XL2).
+ *
+ * 14000 fF is KKM's own recommended value for this board, and matches the
+ * convention on Nordic's boards where this property is the internal capacitor
+ * value rather than the crystal's CL spec.
+ *
+ * Pair with CONFIG_CLOCK_CONTROL_NRF_K32SRC_XTAL=y (see lfxo.conf).
+ *
+ * If the board goes dark and silent after this, the cap value is wrong for the
+ * fitted part: revert to RC, which is one line, and try 7000.
+ */
+&lfxo {
+	load-capacitors = "internal";
+	load-capacitance-femtofarad = <14000>;
+	status = "okay";
+};

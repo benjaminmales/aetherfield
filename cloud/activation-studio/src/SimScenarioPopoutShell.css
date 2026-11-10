@@ -1,0 +1,61 @@
+.mas-sim-scenario-popout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 14px 18px 18px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: var(--font, system-ui, sans-serif);
+}
+
+.mas-sim-scenario-popout--error {
+  align-items: center;
+  justify-content: center;
+}
+
+.mas-sim-scenario-popout--error p {
+  margin: 0;
+  max-width: 400px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.mas-sim-scenario-popout-head h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+}
+
+.mas-sim-scenario-popout-lead {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #94a3b8;
+  max-width: 42em;
+}
+
+.mas-sim-scenario-popout-main {
+  flex: 1;
+  min-height: 0;
+}
+
+.mas-sim-scenario-popout-foot {
+  flex-shrink: 0;
+  padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mas-sim-scenario-controls-wait {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #fbbf24;
+  padding: 10px 12px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: 8px;
+}

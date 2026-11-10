@@ -1,0 +1,25 @@
+&pdm_imu_pwr {
+	/delete-property/ regulator-boot-on;
+};
+
+/ {
+	/* Console + shell on uart20, which the onboard SAMD11 bridges to the
+	 * XIAO's USB-C port. This is the DEFAULT because bench testing over
+	 * USB (CoolTerm, the serial test bridge) is the current workflow.
+	 *
+	 * uart21 is P2.07/P2.08 = the D6/D7 header pins that go to the Pi.
+	 * Build with -DEXTRA_DTC_OVERLAY_FILE=pi.overlay for that.
+	 *
+	 * The DTR stall noted in the old comment here was a USB-CDC-on-the-nRF
+	 * problem. On this board USB is the SAMD11's job and uart20 is a plain
+	 * UART to the nRF, so there is no DTR line to block on.
+	 */
+	chosen {
+		zephyr,console = &uart20;
+		zephyr,shell-uart = &uart20;
+	};
+
+	aliases {
+		rfsw-ctl = &pdm_imu_pwr;
+	};
+};

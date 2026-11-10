@@ -1,0 +1,14 @@
+# Aetherfield voteband-c6 defaults
+CONFIG_IDF_TARGET="esp32c6"
+
+# 802.15.4 radio driver (esp_ieee802154)
+CONFIG_IEEE802154_ENABLED=y
+CONFIG_IEEE802154_RECEIVE_DONE_HANDLER=y
+
+# 1 ms tick for snappy touch/TX timing
+CONFIG_FREERTOS_HZ=1000
+
+# The board has 16MB flash; default 2MB table is fine for this app but set
+# the real size so future OTA/partition work has headroom.
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"

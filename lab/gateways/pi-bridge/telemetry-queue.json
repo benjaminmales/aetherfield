@@ -1,0 +1,122 @@
+[
+  {
+    "node_id": 3,
+    "band_id": "4",
+    "uuid": "0x0000E45F",
+    "rssi": -52,
+    "gesture": "clap",
+    "gesture_code": 2,
+    "caps": 151,
+    "battery": null,
+    "raw_line": "NODE: id=3 UUID: 0x0000E45F RSSI: -52 Caps: 0x97 Batt: 255 Gesture: clap (2)",
+    "queued_at": "2026-08-31T19:52:16.571Z"
+  },
+  {
+    "node_id": 3,
+    "band_id": "4",
+    "uuid": "0x0000E45F",
+    "rssi": -55,
+    "gesture": "none",
+    "gesture_code": 0,
+    "caps": 151,
+    "battery": 64,
+    "raw_line": "NODE: id=3 UUID: 0x0000E45F RSSI: -55 Caps: 0x97 Batt: 64 Gesture: none (0)",
+    "queued_at": "2026-08-31T19:52:16.576Z"
+  },
+  {
+    "node_id": 3,
+    "band_id": "4",
+    "uuid": "0x0000E45F",
+    "rssi": -52,
+    "gesture": "clap",
+    "gesture_code": 2,
+    "caps": 151,
+    "battery": null,
+    "raw_line": "NODE: id=3 UUID: 0x0000E45F RSSI: -52 Caps: 0x97 Batt: 255 Gesture: clap (2)",
+    "queued_at": "2026-08-31T19:52:38.929Z"
+  },
+  {
+    "node_id": 3,
+    "band_id": "4",
+    "uuid": "0x0000E45F",
+    "rssi": -55,
+    "gesture": "none",
+    "gesture_code": 0,
+    "caps": 151,
+    "battery": 64,
+    "raw_line": "NODE: id=3 UUID: 0x0000E45F RSSI: -55 Caps: 0x97 Batt: 64 Gesture: none (0)",
+    "queued_at": "2026-08-31T19:52:38.933Z"
+  },
+  {
+    "node_id": 3,
+    "band_id": "4",
+    "uuid": "0x0000E45F",
+    "rssi": -52,
+    "gesture": "none",
+    "gesture_code": 0,
+    "caps": 151,
+    "battery": 90,
+    "raw_line": "NODE: id=3 UUID: 0x0000E45F RSSI: -52 Caps: 0x97 Batt: 90 Gesture: none (0)",
+    "queued_at": "2026-09-01T09:34:47.791Z"
+  },
+  {
+    "node_id": 3,
+    "band_id": "4",
+    "uuid": "0x0000E45F",
+    "rssi": -53,
+    "gesture": "none",
+    "gesture_code": 0,
+    "caps": 151,
+    "battery": 90,
+    "raw_line": "NODE: id=3 UUID: 0x0000E45F RSSI: -53 Caps: 0x97 Batt: 90 Gesture: none (0)",
+    "queued_at": "2026-09-01T09:34:48.194Z"
+  },
+  {
+    "node_id": 3,
+    "band_id": "4",
+    "uuid": "0x0000E45F",
+    "rssi": -52,
+    "gesture": "none",
+    "gesture_code": 0,
+    "caps": 151,
+    "battery": 90,
+    "raw_line": "NODE: id=3 UUID: 0x0000E45F RSSI: -52 Caps: 0x97 Batt: 90 Gesture: none (0)",
+    "queued_at": "2026-09-01T09:51:02.753Z"
+  },
+  {
+    "node_id": 3,
+    "band_id": "4",
+    "uuid": "0x0000E45F",
+    "rssi": -53,
+    "gesture": "none",
+    "gesture_code": 0,
+    "caps": 151,
+    "battery": 90,
+    "raw_line": "NODE: id=3 UUID: 0x0000E45F RSSI: -53 Caps: 0x97 Batt: 90 Gesture: none (0)",
+    "queued_at": "2026-09-01T09:51:03.159Z"
+  },
+  {
+    "node_id": 4,
+    "band_id": "10",
+    "uuid": "0x00000C4D",
+    "rssi": -60,
+    "gesture": "none",
+    "gesture_code": 0,
+    "caps": 1,
+    "battery": 80,
+    "raw_line": "NODE: id=4 UUID: 0x00000C4D RSSI: -60 Caps: 0x01 Batt: 80 Gesture: none (0)",
+    "queued_at": "2026-09-01T09:51:03.565Z"
+  },
+  {
+    "node_id": 4,
+    "band_id": "10",
+    "uuid": "0x00000C4D",
+    "rssi": -61,
+    "gesture": "none",
+    "gesture_code": 0,
+    "caps": 1,
+    "battery": 80,
+    "raw_line": "NODE: id=4 UUID: 0x00000C4D RSSI: -61 Caps: 0x01 Batt: 80 Gesture: none (0)",
+    "queued_at": "2026-09-01T09:51:03.971Z"
+  }
+]

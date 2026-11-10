@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aura Server</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1275.6 850.4'%3E%3Cpath d='M854.4,0c2.2,87.8,27.4,172.2,77.9,244.1,70.5,100.2,182.9,165.4,305.8,177.5,8.5.8,21.4,2.2,37.5,2.4v426.4c-57.4-2.3-113.6-6.4-169.9-17.6C753.7,763.2,478.3,465.7,433.6,111.7l-7.6-70.7v807H0V0h854.4Z' fill='%23FF6B1A'/%3E%3C/svg%3E" />
+<style>
+  /* Black, white, orange. Orange marks what you are about to change or just
+     changed. Status keeps green/amber/red: "fine" and "failing" must differ. */
+  :root{--bg:#0a0a0a;--panel:#111;--line:#242424;--line2:#1a1a1a;--text:#f2f2f2;--dim:#8c8c8c;
+        --faint:#5c5c5c;--accent:#ff6b1a;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171}
+  *{box-sizing:border-box}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);
+       color:var(--text);margin:0;padding:22px 20px 40px;line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1400px;margin:0 auto}
+  .head{display:flex;align-items:center;gap:13px;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:22px}
+  .head svg{width:26px;height:auto;flex:none}
+  .brand{font-size:.82rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase}
+  .head h1{font-size:.82rem;font-weight:400;color:var(--dim);margin:0}
+  .head h1::before{content:"";display:inline-block;width:1px;height:11px;background:var(--line);margin-right:13px;vertical-align:-1px}
+  .head .meta{margin-left:auto;display:flex;gap:16px;color:var(--faint);font-size:.72rem;align-items:center}
+  .bar{display:flex;flex-wrap:wrap;margin-bottom:20px}
+  .stat{display:flex;flex-direction:column;padding-right:22px;margin-right:22px;border-right:1px solid var(--line2);min-width:64px}
+  .stat:last-child{border-right:0}
+  .stat b{font-size:1.45rem;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+  .stat span{font-size:.62rem;color:var(--faint);text-transform:uppercase;letter-spacing:.09em}
+  h2{font-size:.63rem;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);margin:24px 0 9px;font-weight:600}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:14px 16px}
+  .grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:22px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:.81rem}
+  th{text-align:left;font-weight:600;color:var(--faint);font-size:.62rem;text-transform:uppercase;letter-spacing:.09em;
+     padding:0 10px 7px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:7px 10px 7px 0;border-bottom:1px solid var(--line2);font-variant-numeric:tabular-nums;vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  tr.off td{opacity:.38}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .dim{color:var(--dim)} .faint{color:var(--faint)}
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:1px;background:var(--faint)}
+  .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+  .pill{font-size:.66rem;padding:1px 7px;border:1px solid var(--line);border-radius:9px;color:var(--dim);white-space:nowrap}
+  .pill.near{border-color:var(--ok);color:var(--ok)} .pill.mid{border-color:var(--warn);color:var(--warn)}
+  button,select,input{font:inherit;font-size:.78rem;background:#161616;color:var(--text);border:1px solid var(--line);
+     border-radius:3px;padding:5px 9px}
+  button{cursor:pointer} button:hover{border-color:var(--accent);color:var(--accent)}
+  button.go{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600}
+  button.go:hover{color:#000;filter:brightness(1.1)}
+  button.sm{padding:2px 7px;font-size:.7rem}
+  input.name{background:transparent;border:1px solid transparent;padding:2px 5px;width:100%;min-width:90px}
+  input.name:hover{border-color:var(--line)} input.name:focus{border-color:var(--accent);outline:0}
+  input[type=color]{padding:0;width:38px;height:29px;border:1px solid var(--line)}
+  input[type=range]{accent-color:var(--accent);padding:0;border:0;background:none}
+  input[type=checkbox]{accent-color:var(--accent)}
+  .zones{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+  .zone{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:11px 13px}
+  .zone .n{font-size:1.4rem;font-weight:500}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .ctl label{font-size:.62rem;color:var(--faint);text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:3px}
+  .feed{max-height:420px;overflow:auto;font-size:.76rem}
+  .feed div{padding:4px 0;border-bottom:1px solid var(--line2)}
+  .feed .k{display:inline-block;width:64px;color:var(--faint);text-transform:uppercase;font-size:.62rem;letter-spacing:.08em}
+  .feed .flash{animation:fl 1.2s}
+  @keyframes fl{from{background:rgba(255,107,26,.25)}to{background:transparent}}
+  .empty{color:var(--faint);padding:14px 0;text-align:center}
+  .toast{position:fixed;bottom:18px;right:18px;background:#161616;border:1px solid var(--accent);padding:8px 13px;
+         border-radius:3px;font-size:.8rem;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+  .prox{display:flex;height:8px;border-radius:2px;overflow:hidden;background:#1a1a1a;margin:6px 0 3px}
+  .prox i{display:block;height:100%}
+  .prox .n1{background:var(--ok)} .prox .n2{background:#2f9e5b} .prox .n3{background:#245c3b}
+  .sw{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);padding:0;cursor:pointer}
+  .sw:hover{outline:2px solid var(--accent);outline-offset:1px}
+  .rule{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line2);font-size:.8rem}
+  .rule:last-child{border-bottom:0}
+  .rule .when{color:var(--accent)} .rule.off{opacity:.45}
+  .form{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .form label{font-size:.62rem;color:var(--faint);text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:3px}
+  .form select,.form input{width:100%}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:.76rem;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <svg viewBox="0 0 1275.6 850.4" aria-label="Aetherfield"><path d="M854.4,0c2.2,87.8,27.4,172.2,77.9,244.1,70.5,100.2,182.9,165.4,305.8,177.5,8.5.8,21.4,2.2,37.5,2.4v426.4c-57.4-2.3-113.6-6.4-169.9-17.6C753.7,763.2,478.3,465.7,433.6,111.7l-7.6-70.7v807H0V0h854.4Z" fill="#f2f2f2"/></svg>
+    <span class="brand">Aetherfield</span>
+    <h1>Aura Server</h1>
+    <div class="meta"><span id="srv">—</span><span><span class="dot" id="wsdot"></span><span id="wsstate">connecting</span></span></div>
+  </div>
+
+  <div class="bar">
+    <div class="stat"><b id="sOnline">0</b><span>Online</span></div>
+    <div class="stat"><b id="sKnown">0</b><span>Known</span></div>
+    <div class="stat"><b id="sLinks">0</b><span>Aura Links</span></div>
+    <div class="stat"><b id="sEvents">0</b><span>Events</span></div>
+  </div>
+
+  <h2>Fleet control</h2>
+  <div class="panel row ctl">
+    <div><label>Colour</label><input type="color" id="cColor" value="#ff6b1a" /></div>
+    <div><label>Animation</label><select id="cAnim"></select></div>
+    <div><label>Brightness</label><input type="range" id="cBright" min="0" max="255" value="255" /></div>
+    <div><label>Who</label>
+      <select id="cGroup">
+        <option value="0">Everyone</option>
+        <option value="8">Aura Tags</option>
+        <option value="2">XIAO dev boards</option>
+        <option value="4">Holyiot Pixels</option>
+      </select></div>
+    <div><label>Where</label><select id="cZone"><option value="">All zones</option></select></div>
+    <div><label>Mode</label><select id="cMode"></select></div>
+    <div><label>&nbsp;</label><button class="go" id="cSend">Send</button></div>
+    <div><label>&nbsp;</label><button id="cOff">All off</button></div>
+    <div><label>Quick</label><div class="row" id="swatches"></div></div>
+  </div>
+
+  <h2>Zones · one per Aura Link</h2>
+  <div class="zones" id="zones"><div class="empty">No Aura Link connected. Links dial this server on port 9000.</div></div>
+
+  <div class="grid">
+    <div>
+      <h2>Devices</h2>
+      <div class="panel">
+        <div class="row" style="margin-bottom:8px"><input id="q" placeholder="Filter by name or id" style="flex:1" />
+          <label class="faint" style="font-size:.72rem"><input type="checkbox" id="onlyOnline" checked /> online only</label></div>
+        <table>
+          <thead><tr><th></th><th>Name</th><th>Id</th><th>Product</th><th>Zone</th><th>Signal</th><th>Motion</th><th>Battery</th><th>Seen</th><th></th></tr></thead>
+          <tbody id="devs"><tr><td colspan="10" class="empty">Waiting for devices…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h2>Live events</h2>
+      <div class="panel feed" id="feed"><div class="empty">Movement, arrivals and zone changes appear here.</div></div>
+      <h2>Calibration</h2>
+      <div class="panel" style="font-size:.78rem">
+        <div class="row ctl">
+          <div><label>Near ≥ dBm</label><input id="kNear" type="number" style="width:80px" /></div>
+          <div><label>Mid ≥ dBm</label><input id="kMid" type="number" style="width:80px" /></div>
+          <div><label>&nbsp;</label><button id="kSave">Save</button></div>
+        </div>
+        <div class="faint" style="margin-top:8px;line-height:1.5">Stand a device where "near" should end and read its signal off the table. Signal moves ~10 dB when someone turns around, so treat bands as bands.</div>
+      </div>
+      <h2>Integrate</h2>
+      <div class="panel" style="font-size:.78rem;line-height:1.7">
+        REST <code>GET /api/v1/devices</code> · <code>POST /api/v1/light</code><br />
+        Live <code id="wsurl">ws://…/ws</code><br />
+        Events <code>GET /api/v1/events?since=0</code><br />
+        <a href="/api/v1" style="color:var(--accent)">API index →</a>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="wrap">
+  <h2>Behaviours · when this happens, do that</h2>
+  <div class="panel">
+    <div id="rules"><div class="empty">No behaviours yet. Build one below, e.g. "when a Tag starts moving, light it green for 5 s and tell my software".</div></div>
+    <div class="form">
+      <div><label>Name</label><input id="bName" placeholder="Moving → green" /></div>
+      <div><label>When</label><select id="bTrig">
+        <option value="motion">Starts moving</option><option value="still">Comes to rest</option>
+        <option value="arrive">Arrives in zone</option><option value="leave">Leaves zone</option>
+        <option value="quiet">Goes quiet</option><option value="any_event">Any device event</option></select></div>
+      <div><label>Zone</label><select id="bZone"><option value="">Any zone</option></select></div>
+      <div><label>Product</label><select id="bProd"><option value="">Any product</option><option>Aura Tag</option><option>Aura One</option><option>Aura Lite</option></select></div>
+      <div><label>Then light</label><select id="bTarget">
+        <option value="device">That device</option><option value="zone">Its whole zone</option>
+        <option value="all">Everyone</option><option value="">Nothing</option></select></div>
+      <div><label>Colour</label><input type="color" id="bColor" value="#00ff66" style="width:100%" /></div>
+      <div><label>Animation</label><select id="bAnim"></select></div>
+      <div><label>For (s, blank = stay)</label><input id="bDur" type="number" min="1" max="3600" placeholder="5" /></div>
+      <div style="grid-column:span 2"><label>And call URL (optional)</label><input id="bUrl" placeholder="http://192.168.1.20:8080/aura" /></div>
+      <div><label>&nbsp;</label><button class="go" id="bAdd" style="width:100%">Add behaviour</button></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const devices = new Map();
+let zones = [], evCount = 0, cloud = false, editing = false;
+
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2200); }
+
+/* API key: only needed if the server sets API_KEY. Asked for once, kept for the tab. */
+async function api(method, url, body) {
+  const headers = { "content-type": "application/json" };
+  const key = sessionStorage.getItem("auraKey"); if (key) headers.authorization = "Bearer " + key;
+  const r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401) {
+    const k = prompt("This Aura Server needs its API key:"); if (!k) throw new Error("API key required");
+    sessionStorage.setItem("auraKey", k); return api(method, url, body);
+  }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+function ago(iso) {
+  const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  return s < 60 ? s + "s" : s < 3600 ? Math.round(s / 60) + "m" : Math.round(s / 3600) + "h";
+}
+const zoneLabel = (z) => z ? esc(z.name || z.id) : '<span class="faint">—</span>';
+
+function renderZones() {
+  const el = $("zones");
+  $("sLinks").textContent = zones.filter((z) => !z.stale).length;
+  const opt = $("cZone"), cur = opt.value;
+  opt.innerHTML = '<option value="">All zones</option>' + zones.map((z) => `<option value="${esc(z.id)}">${esc(z.name || z.id)}</option>`).join("");
+  opt.value = cur;
+  const bz = $("bZone"), bcur = bz.value;
+  bz.innerHTML = '<option value="">Any zone</option>' + zones.map((z) => `<option value="${esc(z.id)}">${esc(z.name || z.id)}</option>`).join("");
+  bz.value = bcur;
+  if (editing) return;
+  if (!zones.length) { el.innerHTML = '<div class="empty">No Aura Link connected. Links dial this server on port 9000.</div>'; return; }
+  const counts = {}, bands = {};
+  for (const d of devices.values()) if (d.online && d.zone) {
+    counts[d.zone.id] = (counts[d.zone.id] || 0) + 1;
+    const b = (bands[d.zone.id] ||= { near: 0, mid: 0, far: 0 }); if (b[d.proximity] !== undefined) b[d.proximity]++;
+  }
+  const bar = (id) => { const b = bands[id] || { near: 0, mid: 0, far: 0 }, n = counts[id] || 0; if (!n) return '<div class="prox"></div>';
+    return `<div class="prox" title="near ${b.near} · mid ${b.mid} · far ${b.far}"><i class="n1" style="width:${b.near / n * 100}%"></i><i class="n2" style="width:${b.mid / n * 100}%"></i><i class="n3" style="width:${b.far / n * 100}%"></i></div>`; };
+  el.innerHTML = zones.map((z) => `
+    <div class="zone">
+      <div class="row" style="justify-content:space-between">
+        <span><span class="dot ${z.stale ? "warn" : "ok"}"></span><span class="mono dim">${esc(z.id)}</span></span>
+        <button class="sm" data-locate="${esc(z.id)}" title="Flash this Link's LED white for 10 s">Locate</button>
+      </div>
+      <input class="name" data-zone="${esc(z.id)}" value="${esc(z.name || "")}" placeholder="Name this zone" />
+      <div class="n">${counts[z.id] || 0}<span class="faint" style="font-size:.7rem"> devices</span></div>
+      ${bar(z.id)}
+      <div class="faint" style="font-size:.68rem">${esc(z.fw || "")} · ${esc(z.remote || "")}</div>
+    </div>`).join("");
+}
+
+function renderDevices() {
+  if (editing) return; // don't redraw under someone typing a name
+  const q = $("q").value.trim().toLowerCase(), only = $("onlyOnline").checked;
+  const all = [...devices.values()];
+  const list = all
+    .filter((d) => (!only || d.online) && (!q || d.id.toLowerCase().includes(q) || (d.niceName || "").toLowerCase().includes(q)))
+    .sort((a, b) => (b.online - a.online) || (b.rssi ?? -999) - (a.rssi ?? -999));
+  $("sOnline").textContent = all.filter((d) => d.online).length;
+  $("sKnown").textContent = devices.size;
+  if (!list.length) { $("devs").innerHTML = `<tr><td colspan="10" class="empty">${devices.size ? "Nothing matches." : "Waiting for devices…"}</td></tr>`; return; }
+  $("devs").innerHTML = list.map((d) => `
+    <tr class="${d.online ? "" : "off"}">
+      <td><span class="dot ${d.online ? "ok" : ""}"></span></td>
+      <td><input class="name" data-dev="${esc(d.id)}" value="${esc(d.niceName || "")}" placeholder="—" /></td>
+      <td class="mono dim">${esc(d.id)}</td>
+      <td>${esc(d.product || "")}</td>
+      <td>${zoneLabel(d.zone)}</td>
+      <td>${d.rssi != null ? `<span class="pill ${esc(d.proximity || "")}">${esc(d.proximity)} ${d.rssi}</span>` : ""}</td>
+      <td>${d.flags?.moving ? '<span class="pill near">moving</span>' : '<span class="faint">still</span>'}</td>
+      <td class="dim">${d.battery != null ? d.battery + "%" + (d.flags?.lowBattery ? ' <span class="dot bad" title="low"></span>' : "") : '<span class="faint">n/a</span>'}</td>
+      <td class="faint">${ago(d.lastSeen)}</td>
+      <td style="white-space:nowrap"><button class="sm" data-identify="${esc(d.id)}">Identify</button>
+        <button class="sm" data-paint="${esc(d.id)}" title="Send the colour above to just this device">Paint</button>
+        ${cloud ? `<button class="sm" data-msg="${esc(d.id)}">Message</button>` : ""}</td>
+    </tr>`).join("");
+}
+
+function addEvent(e) {
+  evCount++; $("sEvents").textContent = evCount;
+  const feed = $("feed"); if (feed.querySelector(".empty")) feed.innerHTML = "";
+  const who = esc(e.niceName || e.id);
+  let what = "";
+  if (e.kind === "event") what = e.event === "motion" ? (e.value ? "started moving" : `came to rest <span class="faint">peak ${esc(e.strength)}</span>`) : esc(e.event) + " " + esc(e.value);
+  else if (e.kind === "zone") what = `→ ${zoneLabel(e.to)}` + (e.from ? ` <span class="faint">from ${zoneLabel(e.from)}</span>` : "");
+  else if (e.kind === "presence") what = e.state === "online" ? `arrived${e.zone ? " at " + zoneLabel(e.zone) : ""}` : "went quiet";
+  const div = document.createElement("div"); div.className = "flash";
+  div.innerHTML = `<span class="k">${esc(e.kind)}</span><b>${who}</b> ${what} <span class="faint" style="float:right">${new Date(e.t).toLocaleTimeString()}</span>`;
+  feed.prepend(div);
+  while (feed.children.length > 200) feed.lastChild.remove();
+}
+
+/* ---- live feed ---- */
+function connect() {
+  const url = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws";
+  $("wsurl").textContent = url;
+  const ws = new WebSocket(url);
+  ws.onopen = () => { $("wsdot").className = "dot ok"; $("wsstate").textContent = "live"; };
+  ws.onclose = () => { $("wsdot").className = "dot bad"; $("wsstate").textContent = "reconnecting"; setTimeout(connect, 2000); };
+  ws.onmessage = (m) => {
+    const o = JSON.parse(m.data);
+    if (o.type === "hello") $("srv").textContent = o.server;
+    else if (o.type === "snapshot") { devices.clear(); o.devices.forEach((d) => devices.set(d.id, d)); zones = o.gateways; renderZones(); renderDevices(); }
+    else if (o.type === "device") { devices.set(o.device.id, o.device); renderDevices(); renderZones(); }
+    else if (o.type === "event") addEvent(o);
+    else if (o.type === "gateway") refreshZones();
+  };
+}
+async function refreshZones() { try { zones = (await api("GET", "/api/gateways")).gateways; renderZones(); } catch {} }
+setInterval(refreshZones, 5000);
+setInterval(renderDevices, 5000); // keep "seen" ages honest between pushes
+
+/* ---- controls ---- */
+function lightBody() {
+  return { color: $("cColor").value, animation: $("cAnim").value, brightness: Number($("cBright").value),
+           group: Number($("cGroup").value), mode: $("cMode").value, zone: $("cZone").value || undefined };
+}
+$("cSend").onclick = async () => { try { const r = await api("POST", "/api/v1/light", lightBody()); toast(`Sent via ${r.linksSent} Link${r.linksSent === 1 ? "" : "s"}`); } catch (e) { toast(e.message); } };
+$("cOff").onclick = async () => { try { await api("POST", "/api/v1/light", { color: "#000000", animation: "off", group: 0 }); toast("All off"); } catch (e) { toast(e.message); } };
+$("q").oninput = renderDevices; $("onlyOnline").onchange = renderDevices;
+
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  try {
+    if (b.dataset.locate) { await api("POST", `/api/v1/zones/${b.dataset.locate}/locate`, {}); toast(`${b.dataset.locate} flashing white for 10 s`); }
+    if (b.dataset.identify) { await api("POST", `/api/v1/devices/${b.dataset.identify}/identify`); toast(`Identify sent to ${b.dataset.identify}`); }
+    if (b.dataset.paint) { const { group, zone, ...body } = lightBody(); await api("POST", `/api/v1/devices/${b.dataset.paint}/light`, body); toast(`Painted ${b.dataset.paint}`); }
+    if (b.dataset.msg) {
+      const text = prompt(`Message for whoever registered ${b.dataset.msg}:`); if (!text) return;
+      const r = await api("POST", "/api/message", { addr: b.dataset.msg, message: text });
+      toast(r.dryRun ? "Dry run (no Twilio configured)" : "Message sent");
+    }
+  } catch (e) { toast(e.message); }
+});
+
+/* Names save on Enter or blur. */
+document.addEventListener("focusin", (e) => { if (e.target.classList?.contains("name")) editing = true; });
+document.addEventListener("focusout", async (e) => {
+  const t = e.target; if (!t.classList?.contains("name")) return;
+  editing = false;
+  try {
+    if (t.dataset.dev) { const r = await api("PUT", `/api/v1/devices/${t.dataset.dev}`, { niceName: t.value });
+      const d = devices.get(r.id); if (d) d.niceName = r.niceName; }
+    if (t.dataset.zone) { await api("PUT", `/api/v1/zones/${t.dataset.zone}`, { name: t.value }); await refreshZones(); }
+  } catch (err) { toast(err.message); }
+  renderDevices();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList?.contains("name")) e.target.blur(); });
+
+/* ---- behaviours ---- */
+const TRIG = { motion: "a device starts moving", still: "a device comes to rest", arrive: "a device arrives", leave: "a device leaves",
+               quiet: "a device goes quiet", any_event: "any device event" };
+const TGT = { device: "light that device", zone: "light its zone", all: "light everyone" };
+async function loadRules() {
+  const { behaviours } = await api("GET", "/api/v1/behaviours");
+  const zn = (id) => { const z = zones.find((x) => x.id === id); return esc(z?.name || id); };
+  $("rules").innerHTML = behaviours.length ? behaviours.map((b) => {
+    const w = b.when, where = [w.product && esc(w.product), w.zone && "in " + zn(w.zone)].filter(Boolean).join(" ");
+    const then = b.then.map((a) => a.do === "light"
+      ? `${TGT[a.target]} <span class="dot" style="background:${esc(a.color)}"></span>${esc(a.animation)}${a.durationS ? " for " + a.durationS + "s" : ""}`
+      : `call <code>${esc(a.url)}</code>`).join(" + ");
+    return `<div class="rule ${b.enabled ? "" : "off"}"><input type="checkbox" data-toggle="${esc(b.id)}" ${b.enabled ? "checked" : ""} />
+      <div style="flex:1"><b>${esc(b.name)}</b><br /><span class="when">When ${TRIG[w.trigger]}${where ? " (" + where + ")" : ""}</span> → ${then}</div>
+      <span class="faint" title="${esc(b.stats.lastError || "")}">${b.stats.fired}× ${b.stats.lastError ? '<span class="dot bad"></span>' : ""}</span>
+      <button class="sm" data-del="${esc(b.id)}">Delete</button></div>`;
+  }).join("") : '<div class="empty">No behaviours yet. Build one below.</div>';
+  window._rules = behaviours;
+}
+$("bAdd").onclick = async () => {
+  const then = [];
+  if ($("bTarget").value) then.push({ do: "light", target: $("bTarget").value, color: $("bColor").value, animation: $("bAnim").value,
+                                      durationS: $("bDur").value ? Number($("bDur").value) : null });
+  if ($("bUrl").value.trim()) then.push({ do: "webhook", url: $("bUrl").value.trim() });
+  const when = { trigger: $("bTrig").value, zone: $("bZone").value || null, product: $("bProd").value || null };
+  try {
+    await api("POST", "/api/v1/behaviours", { name: $("bName").value || $("bTrig").selectedOptions[0].text, when, then });
+    $("bName").value = ""; $("bUrl").value = ""; toast("Behaviour added"); loadRules();
+  } catch (e) { toast(e.message); }
+};
+document.addEventListener("change", async (e) => {
+  const id = e.target.dataset?.toggle; if (!id) return;
+  const b = (window._rules || []).find((x) => x.id === id); if (!b) return;
+  const { stats, ...rule } = b;
+  try { await api("PUT", `/api/v1/behaviours/${id}`, { ...rule, enabled: e.target.checked }); loadRules(); } catch (err) { toast(err.message); }
+});
+document.addEventListener("click", async (e) => {
+  const id = e.target.dataset?.del; if (!id || !confirm("Delete this behaviour?")) return;
+  try { await api("DELETE", `/api/v1/behaviours/${id}`); loadRules(); } catch (err) { toast(err.message); }
+});
+setInterval(loadRules, 5000);
+
+/* ---- calibration ---- */
+api("GET", "/api/v1/settings").then(({ settings }) => { $("kNear").value = settings.proximity.nearDbm; $("kMid").value = settings.proximity.midDbm; });
+$("kSave").onclick = async () => {
+  try { await api("PUT", "/api/v1/settings", { proximity: { nearDbm: Number($("kNear").value), midDbm: Number($("kMid").value) } }); toast("Calibration saved"); }
+  catch (e) { toast(e.message); }
+};
+
+/* ---- quick colours ---- */
+$("swatches").innerHTML = ["#ff0000", "#00ff00", "#0000ff", "#ff6b1a", "#ffffff", "#ff00ff", "#00ffff"]
+  .map((c) => `<button class="sw" data-sw="${c}" style="background:${c}" title="${c}"></button>`).join("");
+document.addEventListener("click", async (e) => {
+  const c = e.target.dataset?.sw; if (!c) return;
+  $("cColor").value = c;
+  try { const r = await api("POST", "/api/v1/light", { ...lightBody(), color: c }); toast(`Sent via ${r.linksSent} Link${r.linksSent === 1 ? "" : "s"}`); } catch (err) { toast(err.message); }
+});
+
+api("GET", "/api/v1").then((m) => {
+  $("bAnim").innerHTML = m.animations.map((a) => `<option ${a === "steady" ? "selected" : ""}>${a}</option>`).join("");
+  $("cAnim").innerHTML = m.animations.map((a) => `<option ${a === "steady" ? "selected" : ""}>${a}</option>`).join("");
+  $("cMode").innerHTML = m.modes.map((a) => `<option>${a}</option>`).join("");
+});
+api("GET", "/api/meta").then((m) => { cloud = Boolean(m.cloud); }).catch(() => {});
+connect();
+loadRules();
+</script>
+</body>
+</html>

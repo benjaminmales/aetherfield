@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) 2025
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Pin assignments taken directly from HOLYIOT-25008-V1.0-sch.pdf, reading the
+ * net label against the pin stub on U1 (nRF54L15_SOC1_QFAA-AB0):
+ *
+ *   net      pin   signal
+ *   LED_B     18   P2.07
+ *   LED_R     20   P2.09
+ *   LED_G     38   P1.10
+ *   KEY       41   P1.13
+ *   TXD        5   P1.04
+ *   RXD        6   P1.05
+ *   INT1      11   P2.00
+ *   SCK       12   P2.01
+ *   SDI       13   P2.02
+ *   INT2      14   P2.03
+ *   SDO       15   P2.04
+ *   CS        16   P2.05
+ *
+ * An earlier revision of this file had LED_B, LED_R, LED_G and KEY each off by
+ * one or two pins. The symptom was subtle and cost real bench time: driving
+ * "red" lit the blue LED, and "green" and the button pin did nothing at all
+ * because the pins they named are not connected on this module. If you change
+ * anything here, check it against the schematic, not against this comment.
+ */
+
+#include "holyiot_25008_nrf54l15-pinctrl.dtsi"
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	/* Green is on P1.10 — LP-domain, so PWM20 can reach it. */
+	rgb_led: pwmleds {
+		compatible = "pwm-leds";
+		led_g: led_g {
+			pwms = <&pwm20 0 PWM_USEC(250) PWM_POLARITY_INVERTED>;
+			label = "RGB Green";
+		};
+	};
+
+	/* Red (P2.09) and Blue (P2.07) are on the MCU-domain P2 port, which
+	 * LP-domain PWM cannot reach, so they are GPIO on/off only.
+	 * Common-anode to VDD through 1k, so active LOW. */
+	gpio_rgb: leds {
+		compatible = "gpio-leds";
+		led_r: led_r {
+			gpios = <&gpio2 9 GPIO_ACTIVE_LOW>;
+			label = "RGB Red";
+		};
+		led_b: led_b {
+			gpios = <&gpio2 7 GPIO_ACTIVE_LOW>;
+			label = "RGB Blue";
+		};
+	};
+
+	buttons: buttons {
+		compatible = "gpio-keys";
+
+		usr_btn: usr-btn {
+			gpios = <&gpio1 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "USR";
+			zephyr,code = <INPUT_KEY_ENTER>;
+		};
+	};
+
+	aliases {
+		led-red = &led_r;
+		led-green = &led_g;
+		led-blue = &led_b;
+		sw0 = &usr_btn;
+		buttons = &buttons;
+		watchdog0 = &wdt31;
+	};
+};
+
+&uart20 {
+	current-speed = <115200>;
+	pinctrl-0 = <&uart20_default>;
+	pinctrl-1 = <&uart20_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&spi00 {
+	pinctrl-0 = <&spi00_default>;
+	pinctrl-1 = <&spi00_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&pwm20 {
+	pinctrl-0 = <&pwm20_default>;
+	pinctrl-1 = <&pwm20_sleep>;
+	pinctrl-names = "default", "sleep";
+};

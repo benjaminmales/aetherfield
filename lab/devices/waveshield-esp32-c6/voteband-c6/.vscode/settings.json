@@ -1,0 +1,6 @@
+{
+    "idf.openOcdConfigs": [
+        "board/esp32c6-lpcore-builtin.cfg"
+    ],
+    "idf.currentSetup": "/Users/benjaminmales/.espressif/v5.5.4/esp-idf"
+}

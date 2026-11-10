@@ -1,0 +1,23 @@
+/*
+ * Put the LED pins into HIGH DRIVE (H0H1).
+ *
+ * Why this can matter here: the nRF GPIO output in standard drive is specced
+ * for a fraction of a milliamp before V_OH starts to droop, and these LEDs ask
+ * for roughly 1.1 mA. Some of the rail is therefore being dropped inside the
+ * pin driver rather than across the LED. High drive holds the pin much closer
+ * to VDD under that load, so more of the voltage lands where it makes light.
+ *
+ * It does NOT change the real ceiling, which is R1 / R3 = 1 k. Expect a
+ * noticeable step, not a transformation. Costs nothing but slightly faster
+ * edges.
+ *
+ * Add as an extra devicetree overlay to any build.
+ */
+
+#include <zephyr/dt-bindings/pinctrl/nrf-pinctrl.h>
+
+&pwm20_default {
+	group1 {
+		nordic,drive-mode = <NRF_DRIVE_H0H1>;
+	};
+};

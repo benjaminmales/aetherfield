@@ -1,0 +1,195 @@
+.mas-live-post {
+  position: fixed;
+  inset: 0;
+  z-index: 1950;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font, system-ui, sans-serif);
+}
+
+.mas-live-post-insights {
+  flex: 1;
+  min-height: 0;
+}
+
+.mas-live-post-map-inner {
+  height: 100%;
+  width: 100%;
+  background: #fff;
+}
+
+.mas-live-post-map-inner--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.mas-live-post-map-inner .activation-map-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.mas-live-post-metrics {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 20px 100px;
+  box-sizing: border-box;
+}
+
+.mas-live-post-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  max-width: 960px;
+}
+
+.mas-live-post-dash-card {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mas-live-post-dash-card--wide {
+  grid-column: 1 / -1;
+}
+
+.mas-live-post-dash-k {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.mas-live-post-dash-v {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.mas-live-post-dash-v--ok {
+  color: #4ade80;
+}
+
+.mas-live-post-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.mas-live-post-modal {
+  width: min(520px, 100%);
+  max-height: min(88vh, 640px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  padding: 24px 26px 20px;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+.mas-live-post-modal-icon {
+  color: #ca8a04;
+  margin-bottom: 10px;
+}
+
+.mas-live-post-modal-title {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.mas-live-post-modal-desc {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.mas-live-post-modal-empty {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.mas-live-post-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.mas-live-post-list-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.mas-live-post-list-title {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mas-live-post-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.mas-live-post-list li {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mas-live-post-list li:last-child {
+  border-bottom: 0;
+}
+
+.mas-live-post-list-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.mas-live-post-list-meta {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.mas-live-post-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}

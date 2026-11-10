@@ -1,0 +1,129 @@
+.mas-insights {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: var(--font, system-ui, sans-serif);
+}
+
+.mas-insights-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid #334155;
+  flex-shrink: 0;
+  background: #0f172a;
+}
+
+.mas-insights-top-text {
+  min-width: 0;
+}
+
+.mas-insights-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.mas-insights-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+}
+
+.mas-insights-sub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #94a3b8;
+  max-width: 720px;
+}
+
+.mas-insights-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+}
+
+.mas-insights-badge--live {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.mas-insights-badge--rehearsal {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.38);
+}
+
+.mas-insights-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.mas-insights-heatmap-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #334155;
+  background: #f8fafc;
+}
+
+.mas-insights-map-caption {
+  margin: 0;
+  padding: 8px 20px 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.mas-insights-heatmap {
+  min-height: 200px;
+  height: min(38vh, 420px);
+  max-height: 480px;
+  padding: 8px 20px 16px;
+  box-sizing: border-box;
+}
+
+.mas-insights-heatmap > * {
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.mas-insights-detail {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Full-height column inside fixed overlays (sim / live insights). */
+.mas-insights.mas-insights--fill {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}

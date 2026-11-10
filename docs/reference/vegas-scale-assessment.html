@@ -1,0 +1,832 @@
+<title>Fifty Thousand by November</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+
+<style>
+:root{
+  --paper:#F4F6F3;
+  --surface:#FFFFFF;
+  --surface-2:#EBEEEA;
+  --ink:#151A22;
+  --ink-2:#454E5C;
+  --ink-3:#727C8C;
+  --rule:#D3D8D4;
+  --rule-strong:#B4BCB6;
+  --accent:#2F3D9E;
+  --accent-soft:#E4E7F6;
+  --signal:#B15F14;
+  --signal-soft:#F6E9D8;
+  --critical:#A02B23;
+  --critical-soft:#F7E2E0;
+  --ok:#2A6355;
+  --ok-soft:#DEEBE6;
+  --shadow:0 1px 2px rgba(21,26,34,.05),0 8px 24px -16px rgba(21,26,34,.22);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1116;
+    --surface:#161A21;
+    --surface-2:#1D222B;
+    --ink:#E4E8EE;
+    --ink-2:#A7B0BE;
+    --ink-3:#78828F;
+    --rule:#2A303A;
+    --rule-strong:#3C444F;
+    --accent:#93A0F2;
+    --accent-soft:#1C2140;
+    --signal:#E09A46;
+    --signal-soft:#31220F;
+    --critical:#F0796D;
+    --critical-soft:#361713;
+    --ok:#5FBCA4;
+    --ok-soft:#102A25;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1116;
+  --surface:#161A21;
+  --surface-2:#1D222B;
+  --ink:#E4E8EE;
+  --ink-2:#A7B0BE;
+  --ink-3:#78828F;
+  --rule:#2A303A;
+  --rule-strong:#3C444F;
+  --accent:#93A0F2;
+  --accent-soft:#1C2140;
+  --signal:#E09A46;
+  --signal-soft:#31220F;
+  --critical:#F0796D;
+  --critical-soft:#361713;
+  --ok:#5FBCA4;
+  --ok-soft:#102A25;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px 120px;}
+
+/* ---------- masthead ---------- */
+.masthead{padding:72px 0 40px;border-bottom:2px solid var(--ink);}
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;flex-wrap:wrap;gap:8px 22px;margin-bottom:26px;
+}
+.eyebrow b{color:var(--accent);font-weight:600;}
+h1{
+  font-family:"Archivo",-apple-system,"Helvetica Neue",sans-serif;
+  font-weight:700;font-size:clamp(2.4rem,6.2vw,4.05rem);
+  line-height:.98;letter-spacing:-.028em;text-wrap:balance;margin:0 0 22px;
+}
+.standfirst{
+  font-size:clamp(1.05rem,2.1vw,1.28rem);line-height:1.5;
+  color:var(--ink-2);max-width:62ch;margin:0;
+}
+.standfirst strong{color:var(--ink);font-weight:600;}
+
+.revision{
+  border:1px solid var(--signal);border-left:3px solid var(--signal);
+  background:var(--signal-soft);padding:18px 22px;margin:32px 0 0;max-width:74ch;
+}
+.revision .lbl{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;font-weight:600;color:var(--signal);display:block;margin-bottom:8px;
+}
+.revision p{margin:0 0 10px;font-size:.94rem;line-height:1.55;}
+.revision p:last-child{margin:0;}
+
+/* ---------- counter strip ---------- */
+.counters{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);margin:34px 0 6px;
+}
+.counter{background:var(--paper);padding:20px 20px 18px;}
+.counter dt{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 8px;
+}
+.counter dd{
+  margin:0;font-family:"Archivo",sans-serif;font-weight:600;font-size:1.62rem;
+  line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+}
+.counter dd span{font-size:.72em;color:var(--ink-3);font-weight:500;}
+
+/* ---------- layout ---------- */
+.cols{display:block;}
+@media (min-width:1000px){
+  .cols{display:grid;grid-template-columns:172px minmax(0,1fr);gap:56px;align-items:start;}
+  nav.toc{position:sticky;top:32px;}
+}
+nav.toc{padding-top:52px;}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;}
+nav.toc a{
+  display:flex;gap:10px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+  line-height:1.4;color:var(--ink-3);text-decoration:none;
+  padding:6px 8px 6px 10px;border-left:2px solid transparent;
+}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent);border-left-color:var(--accent);}
+nav.toc a b{color:var(--rule-strong);font-weight:500;flex:none;}
+nav.toc .grp{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--rule-strong);margin:18px 0 6px 10px;
+}
+nav.toc .grp:first-child{margin-top:0;}
+
+/* ---------- sections ---------- */
+section{padding-top:56px;scroll-margin-top:24px;}
+h2{
+  font-family:"Archivo",sans-serif;font-weight:600;
+  font-size:clamp(1.5rem,3vw,1.95rem);letter-spacing:-.022em;line-height:1.12;
+  text-wrap:balance;margin:0 0 6px;display:flex;gap:14px;align-items:baseline;
+}
+h2 .num{
+  font-family:"IBM Plex Mono",monospace;font-size:.62em;font-weight:500;
+  color:var(--accent);flex:none;font-variant-numeric:tabular-nums;
+}
+.dek{
+  color:var(--ink-3);font-size:.94rem;margin:0 0 26px;padding-bottom:16px;
+  border-bottom:1px solid var(--rule);max-width:70ch;
+}
+h3{font-family:"Archivo",sans-serif;font-weight:600;font-size:1.03rem;letter-spacing:-.005em;margin:34px 0 10px;}
+h4{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:11.5px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:26px 0 8px;
+}
+p{margin:0 0 16px;max-width:68ch;}
+ul,ol{max-width:68ch;padding-left:1.15em;margin:0 0 16px;}
+li{margin-bottom:9px;}
+li::marker{color:var(--ink-3);}
+strong{font-weight:600;}
+code{
+  font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--surface-2);
+  padding:.1em .34em;border-radius:3px;color:var(--ink);
+}
+a{color:var(--accent);text-underline-offset:2px;}
+
+/* ---------- risk cards ---------- */
+.risks{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:16px;margin:0 0 30px;}
+.risk{
+  background:var(--surface);border:1px solid var(--rule);border-top:3px solid var(--sev);
+  padding:20px 20px 18px;box-shadow:var(--shadow);
+}
+.risk.r1{--sev:var(--critical);}
+.risk.r2{--sev:var(--critical);}
+.risk.r3{--sev:var(--signal);}
+.risk.r4{--sev:var(--accent);}
+.risk .tag{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--sev);font-weight:600;display:block;margin-bottom:9px;
+}
+.risk h3{margin:0 0 8px;font-size:1.06rem;}
+.risk p{font-size:.9rem;color:var(--ink-2);margin:0;line-height:1.5;}
+
+/* ---------- callouts ---------- */
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:16px 20px;margin:24px 0;max-width:70ch;}
+.note.warn{border-left-color:var(--signal);background:var(--signal-soft);}
+.note.stop{border-left-color:var(--critical);background:var(--critical-soft);}
+.note.good{border-left-color:var(--ok);background:var(--ok-soft);}
+.note p:last-child{margin-bottom:0;}
+.note .lbl{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;font-weight:600;display:block;margin-bottom:7px;color:var(--accent);
+}
+.note.warn .lbl{color:var(--signal);}
+.note.stop .lbl{color:var(--critical);}
+.note.good .lbl{color:var(--ok);}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:22px 0 26px;border:1px solid var(--rule);background:var(--surface);}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.9rem;}
+caption{
+  text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);padding:14px 18px 0;
+}
+th,td{padding:11px 18px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top;}
+thead th{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:500;border-bottom:1px solid var(--rule-strong);
+}
+tbody tr:last-child td{border-bottom:0;}
+td.n,th.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;}
+td.tight{font-family:"IBM Plex Mono",monospace;font-size:.84rem;}
+.pill{
+  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+  letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+  padding:3px 7px;border-radius:2px;white-space:nowrap;
+}
+.pill.crit{background:var(--critical-soft);color:var(--critical);}
+.pill.warn{background:var(--signal-soft);color:var(--signal);}
+.pill.ok{background:var(--ok-soft);color:var(--ok);}
+
+/* ---------- figures ---------- */
+figure{margin:30px 0;}
+.fw{overflow-x:auto;background:var(--surface);border:1px solid var(--rule);padding:22px 20px 14px;}
+figure svg{display:block;min-width:660px;width:100%;height:auto;}
+figcaption{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.55;
+  color:var(--ink-3);margin-top:12px;max-width:74ch;
+}
+.svg-label{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-2);}
+.svg-tick{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:var(--ink-3);}
+.svg-grp{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;fill:var(--ink-3);font-weight:600;}
+.svg-val{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;}
+.svg-grid{stroke:var(--rule);stroke-width:1;}
+.svg-axis{stroke:var(--rule-strong);stroke-width:1;}
+.svg-box{fill:var(--surface-2);stroke:var(--rule-strong);stroke-width:1;}
+
+/* ---------- decision list ---------- */
+ol.actions{list-style:none;padding:0;counter-reset:a;max-width:74ch;}
+ol.actions li{
+  counter-increment:a;display:grid;grid-template-columns:34px minmax(0,1fr);gap:16px;
+  padding:16px 0;border-bottom:1px solid var(--rule);margin:0;
+}
+ol.actions li::before{
+  content:counter(a,decimal-leading-zero);
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  color:var(--accent);padding-top:4px;
+}
+ol.actions .act{font-weight:600;display:block;margin-bottom:3px;}
+ol.actions .why{color:var(--ink-2);font-size:.92rem;line-height:1.5;}
+
+/* ---------- options ---------- */
+.opts{display:grid;gap:14px;margin:22px 0;}
+.opt{border:1px solid var(--rule);background:var(--surface);padding:18px 20px;display:grid;gap:6px;}
+.opt.pick{border-color:var(--ok);border-left:3px solid var(--ok);background:var(--ok-soft);}
+.opt .oh{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;}
+.opt .on{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:.1em;}
+.opt h3{margin:0;font-size:1.02rem;}
+.opt p{font-size:.92rem;color:var(--ink-2);margin:0;}
+
+footer{
+  margin-top:80px;padding-top:26px;border-top:2px solid var(--ink);
+  font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.7;color:var(--ink-3);
+}
+footer a{color:var(--ink-3);}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">
+    <span>ÆTHERFIELD</span>
+    <span>Scale assessment · rev B</span>
+    <span>Las Vegas · distributed · 15 properties</span>
+    <span><b>24 August 2026</b></span>
+  </div>
+  <h1>Fifty thousand by November</h1>
+  <p class="standfirst">One client, roughly fifteen properties across the city, every site live end of November, and a single device that follows each guest between them. <strong>The radio problem mostly dissolves. A second hardware programme takes its place</strong>, and it is the one nobody has costed yet.</p>
+
+  <div class="revision">
+    <span class="lbl">Revised for a distributed deployment</span>
+    <p><strong>What got better:</strong> spreading 50,000 devices over fifteen properties takes the 802.15.4 channel problem from impossible to comfortably solvable. It was the top risk; it is now fourth.</p>
+    <p><strong>What got worse:</strong> you now need roughly 180 gateways built, backhauled, installed and commissioned across fifteen properties in the same fourteen weeks — and "all sites live end of November" removes the phasing escape hatch entirely. A device that follows a guest between properties also builds a city-scale movement graph tied to a name, which makes a formal impact assessment mandatory rather than advisable, and quietly destroys the pod-recovery economics.</p>
+  </div>
+</header>
+
+<dl class="counters">
+  <div class="counter"><dt>Days remaining</dt><dd>98<span> to 30 Nov</span></dd></div>
+  <div class="counter"><dt>Sea-freight gate</dt><dd>5 Oct<span> · 42 days</span></dd></div>
+  <div class="counter"><dt>Gateways to build</dt><dd>~180<span> across 15 sites</span></dd></div>
+  <div class="counter"><dt>Install window</dt><dd>20 days<span> · 15 properties</span></dd></div>
+  <div class="counter"><dt>Battery, unmitigated</dt><dd>108<span> mAh / 150</span></dd></div>
+</dl>
+
+<div class="cols">
+
+<nav class="toc" aria-label="Contents">
+  <div class="grp">Verdict</div>
+  <ol>
+    <li><a href="#s0"><b>00</b> Where this breaks</a></li>
+  </ol>
+  <div class="grp">Engineering</div>
+  <ol>
+    <li><a href="#s1"><b>01</b> Load model</a></li>
+    <li><a href="#s2"><b>02</b> RF, downgraded</a></li>
+    <li><a href="#s3"><b>03</b> The gateway programme</a></li>
+    <li><a href="#s4"><b>04</b> Battery and the pod</a></li>
+    <li><a href="#s5"><b>05</b> Backend build</a></li>
+    <li><a href="#s6"><b>06</b> Message channel</a></li>
+  </ol>
+  <div class="grp">Compliance</div>
+  <ol>
+    <li><a href="#s7"><b>07</b> GDPR position</a></li>
+    <li><a href="#s8"><b>08</b> US overlay</a></li>
+  </ol>
+  <div class="grp">Delivery</div>
+  <ol>
+    <li><a href="#s9"><b>09</b> Critical path</a></li>
+    <li><a href="#s10"><b>10</b> Four options</a></li>
+    <li><a href="#s11"><b>11</b> This week</a></li>
+    <li><a href="#s12"><b>12</b> Ask the client</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="s0">
+  <h2><span class="num">00</span>Where this breaks</h2>
+  <p class="dek">Re-ranked for the distributed case. The order has changed since rev A.</p>
+
+  <div class="risks">
+    <div class="risk r1">
+      <span class="tag">Severity 1 · New</span>
+      <h3>The gateway programme</h3>
+      <p>Roughly 180 gateways to design, build, backhaul, install and commission across fifteen properties. It is a second hardware programme, running in the same fourteen weeks as the first, and it has its own install labour problem in Las Vegas.</p>
+    </div>
+    <div class="risk r2">
+      <span class="tag">Severity 2 · Calendar</span>
+      <h3>No phasing escape</h3>
+      <p>"All sites live end of November" removes the option that made rev A survivable. You now need the full 50,000 units <em>and</em> fifteen simultaneous installs. Sea freight still has to leave China around 5 October.</p>
+    </div>
+    <div class="risk r3">
+      <span class="tag">Severity 3 · Legal</span>
+      <h3>City-scale tracking</h3>
+      <p>One device following a named guest between properties is precise location tracking at scale in publicly accessible areas. A DPIA is now mandatory, not advisable. TCPA exposure is unchanged and still the largest single number on this page.</p>
+    </div>
+    <div class="risk r4">
+      <span class="tag">Severity 4 · Was #1</span>
+      <h3>RF capacity</h3>
+      <p>Spread over fifteen sites, no single venue holds 50,000 devices. Worst-case site density is a tenth of the original figure. Still needs the gateway-triggered protocol, but the margin goes from negative to generous.</p>
+    </div>
+  </div>
+
+  <div class="note stop">
+    <span class="lbl">The honest read, revised</span>
+    <p>Distribution made the physics tractable and the logistics worse. The binding constraint is no longer "can 50,000 radios share a channel" — it is <strong>"can two hardware programmes, fifteen site surveys, fifteen venue installs and a customs clearance all land inside the same three weeks of November."</strong> On the current path, no. The single highest-leverage change available is to decouple the gateway programme from China entirely and build it locally, which takes ~180 units off the freight critical path.</p>
+  </div>
+</section>
+
+<section id="s1">
+  <h2><span class="num">01</span>Load model</h2>
+  <p class="dek">Distributed assumptions. Correct these and the numbers move — but the shape holds.</p>
+
+  <p>Assume 50,000 unique attendees over a multi-day run; fifteen properties; one device per guest, carried between properties; an anchor venue that at peak holds perhaps 20% of the population; typical properties holding two to four thousand; each guest visiting three or four properties and crossing eight or so zones at each.</p>
+
+  <div class="tw">
+    <table>
+      <caption>Derived load — distributed</caption>
+      <thead><tr><th>Path</th><th class="n">Rev A · one venue</th><th class="n">Rev B · 15 sites</th><th>Change</th></tr></thead>
+      <tbody>
+        <tr><td>Peak devices at one site</td><td class="n">50,000</td><td class="n">~10,000</td><td><span class="pill ok">5× better</span></td></tr>
+        <tr><td>Frames/s at busiest site, free-running</td><td class="n">25,000</td><td class="n">5,000</td><td><span class="pill ok">Solvable</span></td></tr>
+        <tr><td>Frames/s, gateway-triggered</td><td class="n">20–50</td><td class="n">20–50</td><td><span class="pill ok">Unchanged</span></td></tr>
+        <tr><td>Proximity events, total</td><td class="n">750,000</td><td class="n">~1,600,000</td><td><span class="pill warn">2× more</span></td></tr>
+        <tr><td>Events/s, average</td><td class="n">35</td><td class="n">~19</td><td><span class="pill ok">Spread thinner</span></td></tr>
+        <tr><td>Gateways</td><td class="n">~40</td><td class="n">~180</td><td><span class="pill crit">4.5× more</span></td></tr>
+        <tr><td>Sites to survey and install</td><td class="n">1</td><td class="n">15</td><td><span class="pill crit">New programme</span></td></tr>
+        <tr><td>Device active life required</td><td class="n">One show</td><td class="n">Whole run</td><td><span class="pill crit">Battery redesign</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Note the two rows that actually matter. Everything radio and database got easier or stayed flat. Everything involving <em>physical presence at a property</em> multiplied by fifteen, and the device went from surviving one evening to surviving the entire run unattended.</p>
+</section>
+
+<section id="s2">
+  <h2><span class="num">02</span>RF, downgraded</h2>
+  <p class="dek">Still needs the protocol change. No longer needs a miracle.</p>
+
+  <p>802.15.4 at 2.4 GHz carries roughly 300–600 frames per second per channel once CSMA-CA backoff and interframe spacing are accounted for. At one venue with 50,000 free-running devices that was 25,000 frames a second — fifty times over, and sixteen channels of diversity only buys sixteen. Distributed, the worst single site holds maybe 10,000 devices, so free-running demand drops to 5,000 frames a second. Channel diversity alone gets that to roughly 310 per channel: right at the edge, but on the survivable side of it.</p>
+
+  <figure>
+    <div class="fw">
+      <svg viewBox="0 0 960 268" role="img" aria-label="Log-scale frame demand. Single-venue 50,000 devices demand 25,000 frames per second; the busiest distributed site demands 5,000; gateway-triggered design demands 20 to 50. Single channel capacity is about 500.">
+        <line class="svg-grid" x1="150" y1="46" x2="150" y2="222"/>
+        <line class="svg-grid" x1="340" y1="46" x2="340" y2="222"/>
+        <line class="svg-grid" x1="530" y1="46" x2="530" y2="222"/>
+        <line class="svg-grid" x1="720" y1="46" x2="720" y2="222"/>
+        <line class="svg-grid" x1="910" y1="46" x2="910" y2="222"/>
+        <text class="svg-tick" x="150" y="240" text-anchor="middle">10</text>
+        <text class="svg-tick" x="340" y="240" text-anchor="middle">100</text>
+        <text class="svg-tick" x="530" y="240" text-anchor="middle">1,000</text>
+        <text class="svg-tick" x="720" y="240" text-anchor="middle">10,000</text>
+        <text class="svg-tick" x="910" y="240" text-anchor="middle">100,000</text>
+        <text class="svg-tick" x="530" y="260" text-anchor="middle">frames per second at the busiest site, log scale</text>
+
+        <rect x="150" y="52" width="645" height="24" fill="var(--critical)" opacity="0.28"/>
+        <text class="svg-label" x="138" y="69" text-anchor="end">Rev A · one venue, free-running</text>
+        <text class="svg-val" x="807" y="69" fill="var(--ink-3)">25,000</text>
+
+        <rect x="150" y="88" width="513" height="24" fill="var(--signal)" opacity="0.85"/>
+        <text class="svg-label" x="138" y="105" text-anchor="end">Rev B · busiest site, free-running</text>
+        <text class="svg-val" x="675" y="105" fill="var(--signal)">5,000</text>
+
+        <rect x="150" y="124" width="330" height="24" fill="var(--signal)" opacity="0.5"/>
+        <text class="svg-label" x="138" y="141" text-anchor="end">…spread over 16 channels</text>
+        <text class="svg-val" x="492" y="141" fill="var(--signal)">310</text>
+
+        <rect x="150" y="160" width="27" height="24" fill="var(--ok)"/>
+        <text class="svg-label" x="138" y="177" text-anchor="end">Gateway-triggered, busy door</text>
+        <text class="svg-val" x="189" y="177" fill="var(--ok)">20–50</text>
+
+        <line class="svg-axis" x1="150" y1="196" x2="910" y2="196"/>
+        <line x1="473" y1="42" x2="473" y2="212" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/>
+        <text class="svg-val" x="481" y="210" fill="var(--accent)">~500 · single-channel capacity</text>
+      </svg>
+    </div>
+    <figcaption>Distribution does most of the work. Channel diversity finishes it. The gateway-triggered protocol turns a marginal result into a comfortable one — and it is the only variant that survives a crowd surge you did not plan for.</figcaption>
+  </figure>
+
+  <p>Build the gateway-triggered design anyway. Two reasons. First, you cannot control where a crowd goes: a headline moment at one property can pull far more than 20% of the population into one room, and free-running beacons fall off a cliff exactly when the client is watching. Second — and this is the one that decides it — <strong>a device that only transmits when it hears a gateway is also a device whose radio is off the rest of the time</strong>, and §04 shows the battery no longer closes without that.</p>
+
+  <p>The rest of the rev A design stands: gateways advertise at around 5 Hz; devices duty-cycle receive and transmit once per zone entry with a suppression window; channels assigned per zone favouring 15, 20, 25 and 26 for the Wi-Fi gaps; gateway range deliberately attenuated to two or three metres. And the v0→v1 migration remains a prerequisite — the promiscuous byte-scan gateway does not survive a few hundred devices, let alone ten thousand.</p>
+</section>
+
+<section id="s3">
+  <h2><span class="num">03</span>The gateway programme</h2>
+  <p class="dek">The new top risk, and the one with no line in the budget yet.</p>
+
+  <p>Fifteen properties at eight to fifteen gateways each is roughly 180 units. That is a second hardware programme: a design, a BOM, an assembly run, an enclosure, a burn-in, a provisioning process, a fleet-management story, and — the part that will hurt — fifteen physical installations in Las Vegas inside a three-week window.</p>
+
+  <h3>Backhaul is the architectural decision</h3>
+  <p>Do not plan to use fifteen properties' guest or corporate Wi-Fi. Even with one client owning every property, each has its own network team, its own security review and its own change-freeze calendar, and you would need fifteen approvals inside fourteen weeks. Route around it: <strong>one cellular router per property, gateways on a private local network behind it.</strong></p>
+
+  <figure>
+    <div class="fw">
+      <svg viewBox="0 0 960 210" role="img" aria-label="Per-site topology: gateways connect over PoE to a switch, which connects to an LTE router, which reaches the EU ingest service over cellular, bypassing venue IT.">
+        <rect class="svg-box" x="20" y="46" width="196" height="118" rx="2"/>
+        <text class="svg-grp" x="30" y="38">ONE PROPERTY × 15</text>
+        <rect x="36" y="62" width="164" height="24" fill="var(--accent)" opacity="0.75"/>
+        <text class="svg-label" x="118" y="79" text-anchor="middle" fill="var(--surface)">Gateway 01</text>
+        <rect x="36" y="92" width="164" height="24" fill="var(--accent)" opacity="0.55"/>
+        <text class="svg-label" x="118" y="109" text-anchor="middle">Gateway 02</text>
+        <text class="svg-tick" x="118" y="134" text-anchor="middle">… 8–15 per site</text>
+        <text class="svg-tick" x="118" y="152" text-anchor="middle">PoE · one cable each</text>
+
+        <line class="svg-axis" x1="216" y1="105" x2="268" y2="105"/>
+        <polygon points="268,105 260,101 260,109" fill="var(--rule-strong)"/>
+
+        <rect class="svg-box" x="268" y="76" width="150" height="58" rx="2"/>
+        <text class="svg-label" x="343" y="100" text-anchor="middle">PoE switch</text>
+        <text class="svg-tick" x="343" y="118" text-anchor="middle">power + data</text>
+
+        <line class="svg-axis" x1="418" y1="105" x2="470" y2="105"/>
+        <polygon points="470,105 462,101 462,109" fill="var(--rule-strong)"/>
+
+        <rect class="svg-box" x="470" y="76" width="170" height="58" rx="2"/>
+        <text class="svg-label" x="555" y="100" text-anchor="middle">LTE/5G router</text>
+        <text class="svg-tick" x="555" y="118" text-anchor="middle">IoT SIM · VPN back</text>
+
+        <line class="svg-axis" x1="640" y1="105" x2="700" y2="105" stroke-dasharray="4 4"/>
+        <polygon points="700,105 692,101 692,109" fill="var(--rule-strong)"/>
+        <text class="svg-tick" x="670" y="96" text-anchor="middle">cellular</text>
+
+        <rect x="700" y="66" width="240" height="78" rx="2" fill="var(--ok)" opacity="0.16" stroke="var(--ok)"/>
+        <text class="svg-label" x="820" y="94" text-anchor="middle">EU ingest service</text>
+        <text class="svg-tick" x="820" y="112" text-anchor="middle">batched NDJSON · idempotent</text>
+        <text class="svg-tick" x="820" y="128" text-anchor="middle">same region as Postgres</text>
+
+        <text class="svg-tick" x="20" y="188" fill="var(--signal)">Venue IT is never in the path — no fifteen network approvals, no change-freeze calendar, no guest-Wi-Fi captive portal.</text>
+      </svg>
+    </div>
+    <figcaption>One router per property rather than one SIM per gateway: fifteen SIMs instead of 180, one VPN endpoint per site for remote support, and gateways that get power and data down a single PoE cable — which is also what house AV crews are set up to install.</figcaption>
+  </figure>
+
+  <p>Managed IoT SIMs from Soracom, 1NCE, Hologram or Twilio Super SIM provision in days and cost a rounding error at this fleet size. Per-site routers from the Teltonika RUT line are standard event kit. PoE is what matters most for install speed: one cable per gateway, no local power supply to find, no socket to negotiate with a property engineer.</p>
+
+  <h3>You cannot hand-manage 180 devices across a city</h3>
+  <p>A gateway that goes dark in a casino basement at 8pm on a Friday needs to be diagnosable without a van. Put the fleet on a managed platform from day one rather than inventing one — <strong>balenaCloud</strong> is the obvious fit for containerised Linux gateways: over-the-air updates, remote terminal, per-device configuration, health and logs. Golioth is the equivalent if you go MCU-based. Either way this is exactly the "use an existing platform" instinct paying off, and it is not the place to save money.</p>
+
+  <p>Alongside it you need an <strong>operations dashboard whose first screen is "which of my 180 gateways is dark right now"</strong>, with heartbeats and alerting. On a single-site deployment that is a nice-to-have and someone walks over to look. At fifteen properties it is the difference between a quiet fix and a client noticing before you do.</p>
+
+  <h3>The install window is the real squeeze</h3>
+  <p>180 gateways at an average of ninety minutes each is around 34 crew-days, before surveys, commissioning and snagging. Three two-person crews get through it in roughly a fortnight — but only if the hardware is on site and the surveys are already done.</p>
+
+  <div class="note warn">
+    <span class="lbl">Las Vegas install labour</span>
+    <p>Expect house-labour requirements at major properties. AV and rigging work at Las Vegas venues is substantially unionised — IATSE Local 720 for AV, Teamsters Local 631 for freight and material handling — and jurisdiction varies property by property and contract by contract. In practice you may not be permitted to install your own equipment; you specify and supervise, house crews execute. That is cost you do not control and, more importantly, scheduling you do not control. <strong>Confirm the labour position at each property before you commit to an install plan</strong>, and get it into the client contract rather than discovering it in November.</p>
+  </div>
+
+  <div class="note good">
+    <span class="lbl">The highest-leverage decision on this page</span>
+    <p>Build the gateways locally, not in China. At 180 units there is no tooling case for offshore manufacture, and building near you removes the entire gateway programme from the sea-freight critical path — the thing that constrains the wearables. Gateways can then be built through September and October and installed from 1 November, while the wearables are still on the water. Two programmes on two independent clocks is the only version of this schedule that closes.</p>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><span class="num">04</span>Battery and the pod</h2>
+  <p class="dek">Two assumptions from the pod concept just broke. Both are recoverable; one is expensive.</p>
+
+  <h3>The device now has to survive the whole run</h3>
+  <p>The pod concept was costed against surviving one performance — roughly 15–25 mAh — with nightly tray charging available. A guest carrying one device between properties over a multi-day run cannot be charged nightly. The device has to last the event.</p>
+
+  <p>Run the numbers on a three-day run with a 10% receive duty cycle held continuously: around 0.5 mA for listening plus roughly 1 mA baseline, over 72 hours, is <strong>about 108 mAh against a 150 mAh cell</strong>. Seventy-two percent depth of discharge with nothing left for transmit, indicator LED, self-discharge or a fourth day. That does not close.</p>
+
+  <div class="note good">
+    <span class="lbl">The fix is already on the board</span>
+    <p>Gate the radio on the accelerometer. The LSM6DSRX is already in the design, and a stationary pod is by definition not walking past a gateway — a pod on a nightstand should be in deep sleep, not listening. Add a coarse show-hours schedule on top. Eight active hours a day over three days is roughly <strong>37 mAh</strong>: comfortable on the same cell, with margin for a fourth day and a cold start. The sensor you put in for gesture detection turns out to be the thing that makes a multi-day battery possible.</p>
+  </div>
+
+  <p>None of which changes the fact that <strong>average pod current has still never been measured</strong>. Every figure above is arithmetic on an estimate. The measurement now sits upstream of battery selection, which sits upstream of dangerous-goods classification, which sits upstream of the freight decision — the one with a 5 October deadline.</p>
+
+  <h3>Pod recovery no longer works</h3>
+  <p>The removable-pod architecture — encapsulated magnet in the giveaway strap, electronics in a pod recovered at exit and reused — assumed a single exit through which everyone passes. Fifteen properties and a device that follows the guest means <strong>there is no exit</strong>. Recovery rate falls from high to poor, and the economics that justified the pod's BOM go with it.</p>
+
+  <div class="tw">
+    <table>
+      <caption>Three ways out, none free</caption>
+      <thead><tr><th>Approach</th><th>Recovery</th><th>Consequence</th></tr></thead>
+      <tbody>
+        <tr><td>Accept full loss, price as giveaway</td><td class="tight">~0%</td><td>Pod BOM has to fall towards strap cost. Kills the current spec, and probably the pogo/tray charging system with it.</td></tr>
+        <tr><td>Recovery points at every property exit</td><td class="tight">40–60% est.</td><td>Fifteen staffed collection points, and a guest who "finishes" at one property and returns to another is penalised.</td></tr>
+        <tr><td>Deposit or redemption incentive</td><td class="tight">60–80% est.</td><td>Best recovery, but adds a payment flow, a refund flow and a whole new class of guest-service problem.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>This is a commercial decision, not a technical one, and it needs to reach the client early — it moves unit economics more than anything else in this document. The pogo-pad charging interface, hard gold plating and keyed tray were all specified for a fleet you get back. If you do not get it back, revisit the whole charging architecture before tooling, not after.</p>
+</section>
+
+<section id="s5">
+  <h2><span class="num">05</span>Backend build</h2>
+  <p class="dek">Same shape as rev A, plus the things a distributed fleet forces.</p>
+
+  <p>The prototype — Vite SPA on Vercel, Supabase for Postgres, Auth, RLS and Realtime, pi-bridge writing telemetry through the service role — is still the right foundation. Keep it. The rev A changes all stand:</p>
+
+  <ul>
+    <li><strong>EU region for the database.</strong> Vegas to Frankfurt is ~150 ms round trip, irrelevant here, and it removes the transfer question for the primary store. Supabase projects cannot move region in place — dump and restore into a new project, now, while the data is worthless.</li>
+    <li><strong>Batched NDJSON ingest</strong> from locally-buffering gateways into a persistent same-region service with a warm connection pool. Not Vercel functions.</li>
+    <li><strong>An outbox and worker</strong> between proximity and sending, carrying rate limits, quiet hours, consent re-check, retries and a kill switch.</li>
+    <li><strong>Partition <code>proximity_events</code> by day</strong> so retention purging is <code>DROP PARTITION</code>.</li>
+  </ul>
+
+  <p>Four more that only the distributed case demands:</p>
+
+  <h4>Site becomes a first-class entity</h4>
+  <p>The current schema has <code>physical_devices</code> with no concept of a site. Add <code>sites</code>, hang gateways off it, and carry <code>site_id</code> through telemetry and the outbox. Everything downstream — throttling, dashboards, per-property reporting, the retention job — wants to group by property, and retrofitting that during an event is not an option.</p>
+
+  <h4>Buffered replay makes events arrive out of order</h4>
+  <p>A gateway that loses cellular for ten minutes and replays will deliver events that are older than events already received from a different property. A guest's journey must be reconstructed by <em>event timestamp, server-side</em>, never by arrival order — and the device clock is the only timestamp you have at the point of capture. This is where the never-measured clock sync stops being an academic item: across fifteen properties there is no shared radio domain at all, so sync comes from the gateway over NTP and inherits its jitter. Fine for journey ordering at second granularity; not fine for anything claiming tighter.</p>
+
+  <h4>Degrade locally, not silently</h4>
+  <p>A property whose cellular link is down should still give the guest something. Decide now what a gateway does when it cannot reach the cloud, and make sure the failure is visible on the ops dashboard rather than showing up as an unexplained drop in messages.</p>
+
+  <h4>Throttle across the journey, not per site</h4>
+  <p>Per-person message caps have to be global. A guest crossing four properties in an evening, each throttling independently, gets four times the messages you intended — and each one carries the same statutory exposure as the first.</p>
+</section>
+
+<section id="s6">
+  <h2><span class="num">06</span>Message channel</h2>
+  <p class="dek">A compliance and lead-time decision wearing a technical costume. Unchanged from rev A, but the volume moved.</p>
+
+  <div class="tw">
+    <table>
+      <caption>Channel comparison</caption>
+      <thead><tr><th>Channel</th><th>Throughput</th><th>Lead time</th><th>Reach</th><th>Legal load</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SMS — A2P 10DLC</strong></td><td class="tight">~4 MPS/carrier at low trust; ~40 medium; ~75 high</td><td class="tight">Days to weeks to register</td><td>Everyone</td><td><span class="pill crit">TCPA</span></td></tr>
+        <tr><td><strong>SMS — short code</strong></td><td class="tight">100+ MPS</td><td class="tight">Historically 8–12 weeks</td><td>Everyone</td><td><span class="pill crit">TCPA</span></td></tr>
+        <tr><td><strong>Web push (PWA)</strong></td><td class="tight">Effectively unlimited</td><td class="tight">None</td><td class="tight">Android easy; iOS needs Add to Home Screen</td><td><span class="pill ok">Minimal</span></td></tr>
+        <tr><td><strong>Email</strong></td><td class="tight">High</td><td class="tight">Domain warm-up</td><td>Everyone</td><td><span class="pill warn">CAN-SPAM</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>With global throttling at roughly one message an hour and six a day across a three-day run, the ceiling is about eighteen messages per guest and the realistic figure is nearer ten — <strong>call it 500,000 messages</strong>. A2P throughput is trust-score dependent and an unknown brand starts low, and T-Mobile applies daily caps on top — up to around 200,000 a day for high-trust campaigns and far less otherwise. Across a multi-day run you are close to that ceiling every single day.</p>
+
+  <p>Web push costs nothing, arrives instantly, needs no carrier registration and carries essentially no TCPA exposure. The catch is iOS, where it only works once the user has added the site to their Home Screen — Safari alone will not do it. Assume 30–50% adoption at best, and note that a multi-day event across fifteen properties is actually the <em>best</em> case for earning that install: a guest who will use the thing for three days has a real reason to add it, in a way that a two-hour show attendee does not.</p>
+
+  <div class="note">
+    <span class="lbl">Recommendation</span>
+    <p>Push as primary, SMS as fallback, email for the tail. It roughly halves the messaging bill, the carrier-cap problem and the TCPA surface at once. If SMS is in scope at all, <strong>start 10DLC brand and campaign registration this week</strong> — and register for the throughput a multi-day distributed run needs, not the throughput a single show needs.</p>
+  </div>
+</section>
+
+<section id="s7">
+  <h2><span class="num">07</span>GDPR position</h2>
+  <p class="dek">One device following a named guest across fifteen properties is a materially different processing operation from a wristband at one venue.</p>
+
+  <h3>The law follows you, not the attendee</h3>
+  <p>Article 3(1): where processing happens in the context of an EU or UK establishment's activities, the regulation applies <em>regardless of where the data subjects are</em>. Las Vegas attendees do not get you out of it. If Aetherfield is UK-established, that is UK GDPR and the DPA 2018 — ICO as regulator, the UK IDTA or Addendum for transfers — not EU GDPR, unless you also have an EU establishment or the client does.</p>
+
+  <div class="note stop">
+    <span class="lbl">Now mandatory, not advisable</span>
+    <p>A DPIA under Article 35 is required. The distributed design hits the triggers squarely: <strong>systematic monitoring of publicly accessible areas on a large scale</strong> under Art. 35(3)(c), large-scale processing, and systematic tracking of individuals' movements. Rev A's single-venue version was arguable; this is not. Budget for it, start it before the architecture freezes rather than after, and expect the client's own privacy counsel to want sight of it.</p>
+  </div>
+
+  <h3>Be the processor</h3>
+  <p>Still the single most valuable compliance decision available, and it costs nothing but a contract. The client determines <em>why</em> the data is collected; put it in writing as an Article 28 DPA. Your obligations then shrink to processing on instructions, an Art. 30(2) record, Art. 32 security, an approved sub-processor list, breach notification to the controller, assistance with subject requests, and deletion at the end.</p>
+
+  <p>One property of the distributed case helps here: a single client owning all fifteen properties means one controller, one contract and one privacy notice. Had these been separately-owned venues you would be negotiating fifteen data positions and probably arguing about joint controllership. Do not let that advantage erode — if any property wants its own copy of the data for its own purposes, that is a new controller and a new problem.</p>
+
+  <div class="note stop">
+    <span class="lbl">The trap, now worth more and therefore more tempting</span>
+    <p>A cross-property movement graph for 50,000 named people is the most commercially valuable dataset Aetherfield will ever have touched, and it is exactly what the Revenue Engine wants. The moment you use it for your own purposes — attribution analytics, product improvement, a demo dataset, a case study — you determine a purpose and become a controller, most likely a joint one under Article 26. Take <strong>aggregates only</strong>: property-to-property flows by cohort, no individual-level rows, suppression below about twenty per cell, written into the DPA as a permitted purpose. Agree it before the event, because after it the raw data will exist and the argument will be much harder to win.</p>
+  </div>
+
+  <h3>Architecture still does most of the work</h3>
+  <ul>
+    <li><strong>PII vault</strong> — name, contact, preferences, consent record. EU Postgres, encrypted at rest, RLS-locked.</li>
+    <li><strong>Journey stream, pseudonymous</strong> — <code>(device_id, site_id, gateway_id, rssi, ts)</code>. No name enters the telemetry path. Gateways, ingest and the ops dashboard never see a person. The cross-property graph can be built, analysed and reported on entirely in this zone.</li>
+    <li><strong>Join late, join server-side.</strong> The <code>device_id → person_id</code> binding lives in one table in the vault, resolved by the message worker at send time and nowhere else.</li>
+  </ul>
+
+  <div class="note warn">
+    <span class="lbl">A pod-concept assumption that just expired</span>
+    <p>The pod design assumed the identity binding "only has to survive one performance before the 30-minute purge." A device that follows a guest across properties for several days means the binding must persist for the whole run — days, not minutes. That is a firmware and provisioning change, and it means the highest-sensitivity table in the system is live for the duration of the event rather than for half an hour. Protect it accordingly, and purge it hard at close.</p>
+  </div>
+
+  <div class="tw">
+    <table>
+      <caption>Retention schedule — revised for a multi-day run</caption>
+      <thead><tr><th>Data</th><th>Retained</th><th>Mechanism</th></tr></thead>
+      <tbody>
+        <tr><td>Raw proximity events</td><td class="tight">7 days post-event</td><td class="tight">Daily partition drop</td></tr>
+        <tr><td>Pseudonymous journey graph</td><td class="tight">30 days</td><td class="tight">Then aggregate and drop the rows</td></tr>
+        <tr><td>Device ↔ person bindings</td><td class="tight">Event close + 24 h</td><td class="tight">Scheduled purge — now live for days, so audit access to it</td></tr>
+        <tr><td>PII vault</td><td class="tight">30 days post-event</td><td class="tight">Unless separately opted in to ongoing contact</td></tr>
+        <tr><td>Cohort aggregates</td><td class="tight">Indefinite</td><td class="tight">Only above suppression threshold</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Transfers and sub-processors</h4>
+  <p>An EU primary store means no transfer for the store itself, but your messaging vendor is US, your 180 gateways and fifteen cellular routers are physically in Nevada, and your fleet-management platform may be US too. Those are transfers. You need SCCs — or the UK Addendum or IDTA — a transfer risk assessment, and each vendor's current Data Privacy Framework status. Adding balenaCloud and a SIM provider to the stack means adding them to the sub-processor register the controller has to approve, so raise them at contract time rather than after you have deployed on them.</p>
+</section>
+
+<section id="s8">
+  <h2><span class="num">08</span>US overlay</h2>
+  <p class="dek">A Nevada event with mostly American guests. GDPR is not the binding constraint, and the distributed design adds a regulator.</p>
+
+  <h3>TCPA — still the one that can end the company</h3>
+  <p>Texting US mobiles for anything marketing-adjacent requires <strong>prior express written consent</strong>: clear and conspicuous disclosure, a separate affirmative action, sender identity, notice that consent is not a condition of purchase, and frequency plus data-rate disclosure. Statutory damages are <strong>$500 per message, trebled to $1,500 for willful violations</strong>. At 500,000 messages that remains the largest single number in this document.</p>
+  <ul>
+    <li>The FCC's one-to-one consent rule was <strong>vacated by the Eleventh Circuit in January 2025</strong>, so per-seller consent is not required — but the underlying written-consent requirement is untouched and enforcement is as active as ever.</li>
+    <li>Revocation rules are partly delayed; implement them anyway. Honour STOP, UNSUBSCRIBE, CANCEL, END and QUIT promptly, treat revocation as broad rather than per-campaign, support HELP — and make revocation propagate <em>across all fifteen properties instantly</em>, which is an argument for the global outbox rather than per-site sending.</li>
+    <li><strong>Quiet hours are 8am–9pm recipient-local.</strong> A distributed Vegas run means properties active late into the night; the outbox has to hold messages, not drop them, and area code is not a reliable proxy for where someone actually is.</li>
+    <li>Classification matters more than any other single lever: transactional and informational messages are treated far more leniently than marketing. Wayfinding between properties is not the same as an offer. Pin this down with the client.</li>
+  </ul>
+
+  <h3>Precise location, at city scale</h3>
+  <div class="note warn">
+    <span class="lbl">New in rev B</span>
+    <p>Cross-property movement data for named individuals is precisely the category US regulators have been most active on. The FTC has brought a series of enforcement actions specifically about precise location data, and several state privacy laws treat it as sensitive data requiring opt-in consent. Two practical consequences: get <strong>separate, explicit consent for cross-property tracking</strong> rather than folding it into general registration, and be able to explain in plain English what the journey data is used for. "We will use this to send you things while you're here, and we delete it afterwards" is a defensible position; a vague reference to analytics is not.</p>
+  </div>
+
+  <h3>Nevada, California, and the venue question</h3>
+  <ul>
+    <li><strong>NRS 603A</strong> — reasonable security for personal information plus breach notification; NRS 603A.340 adds a right to opt out of the <em>sale</em> of covered information, with a designated request address.</li>
+    <li><strong>CCPA/CPRA</strong> — you are probably under the thresholds for one event, but a multi-property Las Vegas operator almost certainly is not. If personal information moves to them for their own use, that is a sale-or-share question. Settle it in the contract.</li>
+    <li><strong>If any of the fifteen properties are casinos, there is a regulatory layer above all of this.</strong> Nevada gaming licensees operate under Gaming Control Board requirements covering patron data and cybersecurity, and licensees are institutionally cautious about third parties handling patron information on their floor. Expect a vendor security review, expect it to be slower than a normal venue IT conversation, and start it now rather than in November. This may turn out to be a longer pole than the install itself.</li>
+    <li><strong>Consumer health data</strong> — Nevada SB 370 and Washington's My Health My Data both reach precise location where it could reveal health status, and the Washington law follows Washington residents wherever they are. Worth a second look precisely because you are now tracking movement across a city rather than within one building.</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><span class="num">09</span>Critical path</h2>
+  <p class="dek">Two hardware programmes, on two independent clocks. That separation is what makes the date arguable at all.</p>
+
+  <figure>
+    <div class="fw">
+      <svg viewBox="0 0 960 472" role="img" aria-label="Critical path from 24 August to 1 December showing two parallel programmes. Wearables PCBA finishes around 1 November, past the 5 October sea gate. Gateways, if built locally, run September to October with installation through November.">
+        <line class="svg-grid" x1="237" y1="34" x2="237" y2="406"/>
+        <line class="svg-grid" x1="469" y1="34" x2="469" y2="406"/>
+        <line class="svg-grid" x1="708" y1="34" x2="708" y2="406"/>
+        <line class="svg-grid" x1="940" y1="34" x2="940" y2="406"/>
+        <text class="svg-tick" x="237" y="26" text-anchor="middle">1 SEP</text>
+        <text class="svg-tick" x="469" y="26" text-anchor="middle">1 OCT</text>
+        <text class="svg-tick" x="708" y="26" text-anchor="middle">1 NOV</text>
+        <text class="svg-tick" x="938" y="26" text-anchor="end">1 DEC</text>
+
+        <text class="svg-grp" x="20" y="52">PROGRAMME A · 50,000 WEARABLES · CHINA</text>
+        <rect x="175" y="60" width="62" height="18" fill="var(--signal)"/>
+        <text class="svg-label" x="165" y="73" text-anchor="end">Freeze interface</text>
+        <rect x="237" y="86" width="108" height="18" fill="var(--signal)"/>
+        <text class="svg-label" x="165" y="99" text-anchor="end">Secure silicon</text>
+        <rect x="237" y="112" width="147" height="18" fill="var(--accent)" opacity="0.5"/>
+        <text class="svg-label" x="165" y="125" text-anchor="end">FCC · module route</text>
+        <rect x="268" y="138" width="286" height="18" fill="var(--accent)" opacity="0.5"/>
+        <text class="svg-label" x="165" y="151" text-anchor="end">Tooling + moulding</text>
+        <rect x="384" y="164" width="324" height="18" fill="var(--critical)"/>
+        <text class="svg-label" x="165" y="177" text-anchor="end">PCBA + test · 50k</text>
+        <rect x="500" y="190" width="239" height="18" fill="var(--accent)" opacity="0.32"/>
+        <text class="svg-label" x="165" y="203" text-anchor="end">Sea transit</text>
+        <rect x="739" y="216" width="77" height="18" fill="var(--accent)" opacity="0.32"/>
+        <text class="svg-label" x="165" y="229" text-anchor="end">Customs + inland</text>
+        <rect x="816" y="242" width="78" height="18" fill="var(--ok)"/>
+        <text class="svg-label" x="165" y="255" text-anchor="end">Distribution</text>
+
+        <text class="svg-grp" x="20" y="286">PROGRAMME B · ~180 GATEWAYS · BUILD LOCAL</text>
+        <rect x="291" y="294" width="247" height="18" fill="var(--accent)" opacity="0.5"/>
+        <text class="svg-label" x="165" y="307" text-anchor="end">15 site surveys</text>
+        <rect x="345" y="320" width="309" height="18" fill="var(--accent)" opacity="0.7"/>
+        <text class="svg-label" x="165" y="333" text-anchor="end">Gateway build + burn-in</text>
+        <rect x="469" y="346" width="185" height="18" fill="var(--accent)" opacity="0.5"/>
+        <text class="svg-label" x="165" y="359" text-anchor="end">Backhaul + SIMs</text>
+        <rect x="708" y="372" width="147" height="18" fill="var(--signal)"/>
+        <text class="svg-label" x="165" y="385" text-anchor="end">Install · 15 properties</text>
+
+        <line x1="500" y1="34" x2="500" y2="406" stroke="var(--critical)" stroke-width="2" stroke-dasharray="5 4"/>
+        <text class="svg-tick" x="505" y="424" fill="var(--critical)">5 OCT — sea gate</text>
+        <line x1="739" y1="34" x2="739" y2="406" stroke="var(--signal)" stroke-width="2" stroke-dasharray="5 4"/>
+        <text class="svg-tick" x="744" y="424" fill="var(--signal)">5 NOV — air gate</text>
+        <line x1="932" y1="34" x2="932" y2="406" stroke="var(--ink)" stroke-width="2"/>
+        <text class="svg-tick" x="928" y="442" text-anchor="end" fill="var(--ink)">30 NOV — all sites live</text>
+      </svg>
+    </div>
+    <figcaption>Programme A's collision is unchanged: PCBA for 50,000 units finishes around 1 November, roughly four weeks after the ship has to leave. Programme B, built locally, clears its own path — surveys through September, build through October, install through November — and never touches the freight gate.</figcaption>
+  </figure>
+
+  <h4>What the chart is saying</h4>
+  <ul>
+    <li><strong>Sea freight still means leaving China around the first week of October.</strong> A purchase order placed and materials secured within two to three weeks from today. Air freight buys a month, then reopens the gap on lithium: UN38.3 test reports per cell type, dangerous-goods packing, and a forwarder willing to take the volume, which many carriers will not.</li>
+    <li><strong>Programme B is only survivable because it is local.</strong> Built in China, 180 gateways join the same freight queue as the wearables, land in mid-November, and leave you five working days to install fifteen properties. Built near you, they install from 1 November while the wearables are still at sea.</li>
+    <li><strong>Surveys start in September or the install plan is fiction.</strong> Fifteen properties, each needing an RF walk, a mounting and power plan, a backhaul check and a labour-jurisdiction answer. That is weeks of travel and access negotiation, and it has to precede the build so gateway counts and antenna choices are real.</li>
+    <li><strong>Use a pre-certified radio module with its own antenna</strong> — Raytac MDBT50Q, Fanstel, Ebyte E73, Minew. FCC becomes verification plus a "Contains FCC ID:" label rather than a full Part 15.247 campaign. And per the platform notes, <strong>nRF52832 cannot do 802.15.4</strong>: the module must be 52833, 52840, 5340 or a 54L-series part.</li>
+    <li><strong>Component availability is a phone call, not a research task.</strong> Module stock at 10k and 50k is the fastest way to find out whether any of this is real.</li>
+  </ul>
+
+  <div class="note warn">
+    <span class="lbl">Do not budget duty from a blog</span>
+    <p>Sources currently disagree wildly on the effective US rate for China-origin electronics — one puts it near 10%, another near 37.5%. The regime moved repeatedly through 2026 and the answer depends on your HTS classification. Get a classification and a landed-cost quote from a customs broker and budget a range: a 27-point swing across 50,000 units is material to the commercial model.</p>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><span class="num">10</span>Four options</h2>
+  <p class="dek">"All sites live end of November" removes phasing by time. So phase by coverage instead.</p>
+
+  <div class="opts">
+    <div class="opt pick">
+      <div class="oh"><span class="on">OPTION A · RECOMMENDED</span></div>
+      <h3>All fifteen sites, thin coverage — one hero property</h3>
+      <p>Two or three gateways at each property's highest-value chokepoint instead of full coverage, plus full instrumentation at the anchor venue. Around 55 gateways instead of 180. Every site is live on the date the client asked for, the install programme shrinks by two-thirds, and the experience that gets filmed is the one that is fully built. This is the version of "all sites live" that is actually deliverable.</p>
+    </div>
+    <div class="opt">
+      <div class="oh"><span class="on">OPTION B · FALLBACK</span></div>
+      <h3>Full coverage, fewer properties</h3>
+      <p>Six properties done properly rather than fifteen done thinly. Better guest experience per site and a far more manageable install, but it means going back to the client on the one number they have already fixed — and cross-property journeys are the product, so cutting sites cuts the thing that makes this interesting.</p>
+    </div>
+    <div class="opt">
+      <div class="oh"><span class="on">OPTION C</span></div>
+      <h3>Full scope, off-the-shelf wearables</h3>
+      <p>Fifteen sites, 50,000 certified BLE beacons from an ODM, Aetherfield stack on top. You make the date and the volume. You lose 802.15.4, downlink, the pod-and-strap concept and the IP story — and you are reselling someone else's hardware, which is exactly what "hardware sells, software monetises" depends on you not doing.</p>
+    </div>
+    <div class="opt">
+      <div class="oh"><span class="on">OPTION D</span></div>
+      <h3>Move the date</h3>
+      <p>Ask what end of November is actually anchored to. If it is a fixed public event, it is immovable and the scope has to give. If it is an internal milestone or a soft launch, six extra weeks converts every red item in this document to amber — and it is worth one conversation to find out which it is before redesigning the product around a date nobody has tested.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s11">
+  <h2><span class="num">11</span>This week</h2>
+  <p class="dek">Reordered for the distributed case. Most of these are still phone calls, not code.</p>
+
+  <ol class="actions">
+    <li><span class="act">Rotate <code>VOTE_RESULT_SECRET</code> in Vercel</span><span class="why">Still outstanding from the consolidation, old value on disk in an archived repo. Do it before anything else touches production.</span></li>
+    <li><span class="act">Get the property list and start site surveys</span><span class="why">Fifteen RF walks, mounting and power plans, backhaul checks and labour-jurisdiction answers. This is now the longest lead item you personally control, and it gates the gateway count, the antenna choice and the install plan.</span></li>
+    <li><span class="act">Decide to build gateways locally, and start that BOM today</span><span class="why">The highest-leverage decision in this document. It takes 180 units off the freight critical path and lets programme B run on its own clock.</span></li>
+    <li><span class="act">Call Nordic distributors for module stock</span><span class="why">nRF52840 / 52833 availability at 10k and 50k. This one answer determines whether options A–D are even the right list.</span></li>
+    <li><span class="act">Ask whether any of the fifteen properties are casinos</span><span class="why">If so, a gaming-regulator vendor security review is in your path and it is slower than a normal venue IT conversation. Start it now, not in November.</span></li>
+    <li><span class="act">Measure average pod current</span><span class="why">Now blocking twice over: battery selection for a multi-day run, and dangerous-goods classification for the freight decision that closes on 5 October.</span></li>
+    <li><span class="act">Confirm the message channel and start 10DLC registration</span><span class="why">If SMS is in scope, register this week — and register for multi-day distributed volume, not single-show volume.</span></li>
+    <li><span class="act">Commission the DPIA</span><span class="why">Mandatory now under Art. 35(3)(c). Start it before the architecture freezes so its findings can still change something.</span></li>
+    <li><span class="act">Get TCPA consent language drafted by US counsel</span><span class="why">Including separate explicit consent for cross-property tracking, and the transactional-versus-marketing classification.</span></li>
+    <li><span class="act">Freeze the mechanical and electrical interface</span><span class="why">It moved twice in a single day last week. Nothing can be tooled until it stops — and if pod recovery is going away, revisit the charging architecture before tooling, not after.</span></li>
+    <li><span class="act">Run the RF capacity test</span><span class="why">One gateway, ten nodes, one traffic generator. Two days. Lower stakes than it was in rev A, but it also validates the receive duty cycle that the battery now depends on.</span></li>
+    <li><span class="act">Confirm the Supabase region, and add sites to the schema</span><span class="why">If the project is in the US, stand up an EU one and cut over now. Add <code>sites</code> before anything else is built on top of the current shape.</span></li>
+  </ol>
+</section>
+
+<section id="s12">
+  <h2><span class="num">12</span>Ask the client</h2>
+  <p class="dek">The software will be ready. The question is now coverage, not headcount.</p>
+
+  <ul>
+    <li><strong>Which fifteen properties, and can we survey them in September?</strong> Everything in programme B is downstream of this, and access negotiation is slower than anyone expects.</li>
+    <li><strong>What is end of November actually anchored to?</strong> A fixed public date, or an internal milestone? The answer changes which of the four options is even on the table.</li>
+    <li><strong>Is full coverage at every property required, or is one instrumented moment per property enough?</strong> This is the difference between 180 gateways and 55.</li>
+    <li><strong>Do guests keep the device, or is it recovered?</strong> With no single exit, recovery needs a mechanism and a budget — and the answer moves unit economics more than anything else on the table.</li>
+    <li><strong>Who is the data controller, and are any properties gaming licensees?</strong> One controller across all fifteen is a significant advantage; a gaming vendor review is a significant delay. Both need answering this week.</li>
+    <li><strong>What exactly is the message</strong> — an offer, wayfinding, a game mechanic? It changes the TCPA classification more than anything else you can control.</li>
+  </ul>
+
+  <div class="note">
+    <span class="lbl">What to lead with</span>
+    <p>Not "we can't do fifteen properties." Lead with the finding that distribution <em>solved</em> the hardest technical problem in the brief — the radio physics that would have sunk a single-venue version — and that what it created instead is a second, entirely tractable programme that needs a decision on coverage depth this week. That is a supplier who has already modelled their event, not one negotiating scope downwards.</p>
+  </div>
+</section>
+
+<footer>
+  <p>ÆTHERFIELD · Las Vegas scale assessment · rev B, distributed · 24 August 2026<br>
+  Load, battery and gateway figures are modelled from the stated assumptions in §01 and move with them. Regulatory summaries are orientation for a conversation with counsel, not legal advice. Tariff, carrier and union-jurisdiction positions were volatile or property-specific at the time of writing and should be confirmed with a customs broker, your messaging vendor and each venue respectively.</p>
+</footer>
+
+</main>
+</div>
+</div>

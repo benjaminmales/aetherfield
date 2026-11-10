@@ -1,0 +1,74 @@
+{
+  "demo_id": "wembley_pitch_to_merch_001",
+  "meta": {
+    "venue": "Wembley Stadium",
+    "fan_persona": "The Early Adopter",
+    "starting_level": 0,
+    "target_level": 1
+  },
+  "narrative_arc": [
+    {
+      "step": 0,
+      "time_index": 0,
+      "pos": [25, 30],
+      "level": 0,
+      "state": "IDLE",
+      "annotation": "Fan is in the Front Pitch GA. Energy is high.",
+      "cel_telemetry": { "heart_rate": 110, "energy_index": 0.85 }
+    },
+    {
+      "step": 1,
+      "time_index": 5,
+      "trigger": "CEL_PULSE_DROP",
+      "trigger_id": "merch_flash_001",
+      "payload": {
+        "haptic": "TRIPLE_SHORT_URGENT",
+        "led": "GOLD_FADE_IN_OUT",
+        "mobile_push": {
+          "title": "AETHERFIELD EXCLUSIVE",
+          "body": "Benjamin, we've reserved a 'Signed Tour Edition' vinyl for you at Merch Stand L1-North. 8 minutes remaining. Your AURA is your key.",
+          "cta": "View Map & Directions",
+          "image_url": "https://aetherfield.com/assets/vinyl_preview.png"
+        }
+      },
+      "annotation": "The 'Interaction Sampler' sends this to the investor's phone now."
+    },
+    {
+      "step": 2,
+      "time_index": 8,
+      "pos": [35, 20],
+      "level": 0,
+      "state": "MOVING",
+      "annotation": "Fan begins moving toward the nearest Level 1 exit."
+    },
+    {
+      "step": 3,
+      "time_index": 12,
+      "pos": [50, 10],
+      "level": 1,
+      "state": "TRANSITION",
+      "annotation": "Fan moves from Level 0 to Level 1. Map view should switch automatically."
+    },
+    {
+      "step": 4,
+      "time_index": 18,
+      "pos": [75, 5],
+      "level": 1,
+      "state": "ARRIVED",
+      "target_node": "merch_n1",
+      "annotation": "Fan reaches the Merch Stand. Proximity gateway detects arrival."
+    },
+    {
+      "step": 5,
+      "time_index": 20,
+      "action": "REVENUE_BLOOM",
+      "transaction": {
+        "item": "Limited Edition Vinyl",
+        "value": 65.00,
+        "currency": "GBP",
+        "attribution": "AURA_CEL_DIRECT"
+      },
+      "annotation": "Transaction confirmed via POS API. IRU counter ticks up on dashboard."
+    }
+  ]
+}

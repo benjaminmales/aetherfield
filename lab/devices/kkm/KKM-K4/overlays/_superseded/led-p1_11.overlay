@@ -1,0 +1,17 @@
+/*
+ * Move the status LED to P1.11 (PWM20 OUT0).
+ * Add as an extra devicetree overlay on the build configuration.
+ * Second guess after P1.10 -- P1.11 is the K7's RGB red channel.
+ */
+&pwm20_default {
+	group1 {
+		psels = <NRF_PSEL(PWM_OUT0, 1, 11)>;
+	};
+};
+
+&pwm20_sleep {
+	group1 {
+		psels = <NRF_PSEL(PWM_OUT0, 1, 11)>;
+		low-power-enable;
+	};
+};

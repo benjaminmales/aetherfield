@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "amoled.c"
+        "qmi8658.c"
+        "orb.c"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        driver
+        esp_timer
+)

@@ -1,0 +1,25 @@
+/*
+ * Voteband overlay for Seeed XIAO nRF52840.
+ *
+ * Cheapest vote input: a momentary button from pin D0 (P0.02) to GND.
+ * Internal pull-up, so pressed = logic low (GPIO_ACTIVE_LOW). No external
+ * parts beyond the button. led0 (onboard user LED) is already defined by the
+ * board and is used as a TX heartbeat.
+ *
+ * If you'd rather drive the vote from the accelerometer (XIAO Sense) or
+ * leave the button off, this node can be removed - the firmware treats a
+ * missing button as "no vote" and still beacons.
+ */
+/ {
+	buttons {
+		compatible = "gpio-keys";
+		vote_button: button_vote {
+			gpios = <&gpio0 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Vote button";
+		};
+	};
+
+	aliases {
+		votesw = &vote_button;
+	};
+};

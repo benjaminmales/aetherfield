@@ -1,0 +1,13 @@
+{
+  // The nRF Connect extension reads board roots only from the folder you have
+  // open — not from a parent, and not from CMakeLists.txt.
+  //
+  // This is the directory CONTAINING boards/, not boards/ itself:
+  //   firmware/boards/kkm/k4beacon_nrf54l15/
+  //   ^------^ board root
+  //
+  // Board target: k4beacon_nrf54l15/nrf54l15/cpuapp
+  "nrf-connect.boardRoots": [
+    "/Users/benjaminmales/aetherfield/firmware", "/Users/benjaminmales/aetherfield/lab"
+  ]
+}

@@ -1,0 +1,45 @@
+[Unit]
+Description=Aetherfield Pixel event server (gateways + operator console)
+Documentation=https://github.com/benjaminmales/aetherfield-pixel
+After=network-online.target
+Wants=network-online.target
+
+# Restart forever. This runs a three-day event unattended; a crash at 3am must
+# not need a human. Disabling the start-rate limit removes systemd's default
+# "give up after 5 restarts in 10s", which is the wrong behaviour for event
+# infrastructure. Belongs in [Unit] — systemd ignores it under [Service].
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=pixel
+Group=pixel
+WorkingDirectory=/opt/aetherfield-pixel/server
+EnvironmentFile=/opt/aetherfield-pixel/server/.env
+ExecStart=/usr/bin/node server.js
+
+Restart=always
+RestartSec=2
+
+# Logs to journald: journalctl -u aetherfield-pixel -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pixel
+
+# Hardening. The service only needs to read its own directory and open sockets.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/aetherfield-pixel/server/data
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+# NOT MemoryDenyWriteExecute — V8's JIT needs write+execute pages and Node dies
+# instantly with SIGTRAP under it. True of any JIT runtime; don't re-add it.
+
+[Install]
+WantedBy=multi-user.target

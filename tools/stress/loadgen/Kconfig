@@ -1,0 +1,72 @@
+# Load generator options.
+#
+# SIM_BLOCK is the one setting that MUST be unique per board. Two boards
+# sharing a block emit the same addresses, the server dedupes them as one
+# device, and the fleet silently appears half the size it should be — which
+# looks exactly like 50% packet loss. Set it from a fragment (tag01.conf ..),
+# never by editing a file between flashes.
+
+menu "Aetherfield load generator"
+
+config SIM_DEVICES
+	int "Virtual devices emitted by this board"
+	default 150
+	range 1 500
+	help
+	  Each gets its own address, its own slot in the beacon cycle and its
+	  own last-cmd-seq echo. 20 boards x 150 = 3000.
+
+config SIM_BLOCK
+	int "Address block index for this board (-1 = derive at runtime)"
+	default -1
+	range -1 408
+	help
+	  Addresses are AURA_ADDR_BAND_BASE + block*SIM_DEVICES + i.
+
+	  Leave this at -1 and the board derives its block from the factory
+	  device id at boot, which means ONE binary flashes to all twenty
+	  boards. That is worth a great deal: the old scheme needed twenty
+	  Kconfig fragments and twenty full Zephyr builds to vary one integer.
+
+	  The cost is that derivation is a birthday problem. Twenty boards into
+	  409 blocks clash with probability 37.6%, and a clash is invisible in
+	  the worst way — two boards emit the same addresses, the server dedupes
+	  them into one device, and the fleet looks 150 devices short, which
+	  reads as packet loss rather than as a numbering fault.
+
+	  So the board prints its block at boot, the server reports how many
+	  distinct blocks it can see, and 'sim block <n>' moves a board over RTT
+	  without rebuilding. Set this to a fixed value only if you want one
+	  particular board pinned.
+
+config SIM_BEACON_MS
+	int "Unused — kept so existing fragments still parse"
+	default 10000
+	range 100 60000
+	help
+	  The beacon interval now comes from the commanded op_param over the
+	  air (op_param x 100 ms, 0 meaning AURA_BEACON_DEFAULT_MS), exactly as
+	  it does on a real Pixel. Set it for the whole fleet at once from the
+	  dashboard with 'aura op 0 <param>'; override one board locally with
+	  'sim rate <ms>'.
+
+	  Twenty boards on hardware with no UART is twenty RTT sessions, and a
+	  sweep where each board changes rate at a different moment is a smear
+	  rather than a measurement.
+
+config SIM_CSMA
+	bool "Use CSMA/CA instead of direct transmit"
+	default n
+	help
+	  The shipping firmware transmits with IEEE802154_TX_MODE_DIRECT — it
+	  does not listen before it talks, which makes the uplink unslotted
+	  ALOHA. ALOHA peaks around 18% channel utilisation and gets WORSE as
+	  offered load rises beyond that.
+
+	  Switch live with 'sim csma 1' and compare delivery rates at the same
+	  offered load. That comparison is the most useful number this whole
+	  test produces.
+
+endmenu
+
+source "Kconfig.zephyr"

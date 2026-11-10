@@ -1,0 +1,11 @@
+{
+  // Out-of-tree boards for every production firmware app. Must be the directory
+  // that CONTAINS boards/, not boards/ itself.
+  //   firmware/boards/seeed/xiao_nrf54lm20a/          Aura Link
+  //   firmware/boards/holyiot/holyiot_25008_nrf54l15/ Aura Tag
+  // Lab apps that need the KKM boards add lab/ as a second root.
+  "nrf-connect.boardRoots": [
+    "/Users/benjaminmales/aetherfield/firmware",
+    "/Users/benjaminmales/aetherfield/lab"
+  ]
+}

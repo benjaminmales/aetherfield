@@ -1,0 +1,93 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * KKM K4 Beacon — nRF54L15. Pins from K4Beacon_54L15 Rev V1.0.
+ *
+ * BOTH LEDs ARE ACTIVE HIGH. Each is 1 kOhm from the pin to the LED anode with
+ * the cathode at GND, so driving the pin high lights it. That is the opposite
+ * of the K7 (common anode, active low) and it is the single most important
+ * difference between these two boards — KKM's own overlay ships the K7 pinout
+ * and polarity, which on a K4 lights nothing and looks like dead hardware.
+ *
+ * It also means a high-power LED switched by an N-channel MOSFET drops
+ * straight in: the FET is active high too, so a modified board needs no
+ * firmware variant.
+ *
+ * LED1 is on P1.04 (LP domain) and gets real PWM brightness.
+ * LED2 is on P2.03 (MCU domain), which LP-domain PWM cannot reach, so it is
+ * on/off only. Both LEDs are plain red 0603s through 1 kOhm — about 1.1 mA off
+ * a 3 V cell. Indicators, not illuminators; more duty will not help.
+ */
+
+#include "k4beacon_nrf54l15-pinctrl.dtsi"
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	pwm_leds: pwmleds {
+		compatible = "pwm-leds";
+
+		/*
+		 * 250 us = 4 kHz.
+		 *
+		 * This was PWM_MSEC(20), i.e. 50 Hz, which is below the flicker
+		 * threshold for anything and hopeless for a high-brightness LED:
+		 * visibly strobing, a dotted trail when the eye moves past it,
+		 * and banding on every camera that films the event.
+		 *
+		 * Worse than plain flicker, it beat against the animation
+		 * engine's 25 Hz duty updates, so the brightness wandered
+		 * irregularly rather than simply blinking fast.
+		 *
+		 * 4 kHz is far above anything an eye or a phone camera resolves,
+		 * and still leaves 4,000 timer ticks of dimming resolution at
+		 * the 16 MHz PWM clock — far more than the 256 levels the
+		 * protocol carries.
+		 */
+		led1_pwm: led1_pwm {
+			pwms = <&pwm20 0 PWM_USEC(250) PWM_POLARITY_NORMAL>;
+			label = "LED1";
+		};
+	};
+
+	gpio_leds: leds {
+		compatible = "gpio-leds";
+
+		led2: led2 {
+			gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;
+			label = "LED2";
+		};
+	};
+
+	buttons: buttons {
+		compatible = "gpio-keys";
+
+		usr_btn: usr-btn {
+			/* SW1 to GND with NO external pull-up — the internal
+			 * one is mandatory, not a preference. */
+			gpios = <&gpio0 4 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "KEY";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+
+	aliases {
+		led-main = &led1_pwm;   /* P1.04 — dimmable, and the modified one */
+		led-aux  = &led2;       /* P2.03 — on/off only */
+		sw0 = &usr_btn;
+		buttons = &buttons;
+		watchdog0 = &wdt31;
+	};
+};
+
+&uart30 {
+	current-speed = <115200>;
+	pinctrl-0 = <&uart30_default>;
+	pinctrl-1 = <&uart30_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&pwm20 {
+	pinctrl-0 = <&pwm20_default>;
+	pinctrl-1 = <&pwm20_sleep>;
+	pinctrl-names = "default", "sleep";
+};

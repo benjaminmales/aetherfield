@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) 2024 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/*
+ * Force IMU compatible to LSM6DSL for XIAO nRF54 (WHO_AM_I = 0x6A).
+ */
+&lsm6dso {
+	compatible = "st,lsm6dsl";
+	/delete-property/ accel-pm;
+	/delete-property/ gyro-pm;
+};
+
+/* GPIO configuration */
+&gpio1 {
+	status = "okay";
+};
+
+&gpio2 {
+	status = "okay";
+};
+
+/* I2C configuration for LP5012 LED driver */
+&i2c22 {
+	status = "okay";
+	clock-frequency = <100000>;  /* 100kHz standard speed */
+};
+
+/* I2C configuration for IMU (LSM6DSO) */
+&i2c30 {
+	status = "okay";
+	clock-frequency = <100000>;  /* 100kHz standard speed */
+};
+
+/* Use default LSM6DSO binding from base DTS */
+
+
+/* Node for LP5012 EN pin using gpio-leds pattern */
+/ {
+	chosen {
+		zephyr,console = &uart20;
+		zephyr,shell-uart = &uart20;
+	};
+
+	lp5012_en: lp5012_en {
+		compatible = "gpio-leds";
+		lp5012_en_led: lp5012_en_led {
+			gpios = <&gpio1 5 GPIO_ACTIVE_HIGH>;
+			label = "LP5012_EN";
+		};
+		/* Add more child nodes here if needed for other LEDs */
+	};
+};

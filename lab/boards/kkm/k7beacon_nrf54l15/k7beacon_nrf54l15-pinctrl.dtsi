@@ -1,0 +1,52 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Pins per K7P54L Rev V1.04 (boards/K7Beacon_54L15_Schematic.pdf), read off the
+ * signal table rather than inferred from a sibling board:
+ *
+ *   GREEN_LED  P1.10      RED_LED  P1.11      BLUE_LED  P1.12
+ *   KEY        P0.02
+ *   RXD        P2.07      TXD      P2.09
+ *   ACC_SDA    P1.04      ACC_SCL  P1.08      INT1 P1.06  INT2 P1.07
+ *
+ * All three LEDs sit on P1, which is the nRF54L15's LP domain — so pwm20
+ * reaches every channel and this board gets real colour, unlike boards whose
+ * LEDs land on MCU-domain P2.
+ */
+
+&pinctrl {
+	/omit-if-no-ref/ pwm20_default: pwm20_default {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 1, 10)>,  /* GREEN */
+				<NRF_PSEL(PWM_OUT1, 1, 11)>,  /* RED    */
+				<NRF_PSEL(PWM_OUT2, 1, 12)>;  /* BLUE   */
+		};
+	};
+
+	/omit-if-no-ref/ pwm20_sleep: pwm20_sleep {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 1, 10)>,
+				<NRF_PSEL(PWM_OUT1, 1, 11)>,
+				<NRF_PSEL(PWM_OUT2, 1, 12)>;
+			low-power-enable;
+		};
+	};
+
+	/omit-if-no-ref/ uart20_default: uart20_default {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 2, 9)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 2, 7)>;
+			bias-pull-up;
+		};
+	};
+
+	/omit-if-no-ref/ uart20_sleep: uart20_sleep {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 2, 9)>,
+				<NRF_PSEL(UART_RX, 2, 7)>;
+			low-power-enable;
+		};
+	};
+};

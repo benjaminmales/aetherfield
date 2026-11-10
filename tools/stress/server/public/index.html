@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aetherfield — Stress test</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1275.6 850.4'%3E%3Cpath d='M854.4,0c2.2,87.8,27.4,172.2,77.9,244.1,70.5,100.2,182.9,165.4,305.8,177.5,8.5.8,21.4,2.2,37.5,2.4v426.4c-57.4-2.3-113.6-6.4-169.9-17.6C753.7,763.2,478.3,465.7,433.6,111.7l-7.6-70.7v807H0V0h854.4Z' fill='%23FF6B1A'/%3E%3C/svg%3E" />
+    <style>
+      :root {
+        --bg:#0a0a0a; --panel:#111; --line:#242424; --line2:#1a1a1a;
+        --text:#f2f2f2; --dim:#8c8c8c; --faint:#5c5c5c;
+        --accent:#ff6b1a; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+      }
+      *{box-sizing:border-box}
+      body{font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:var(--bg);
+           color:var(--text);margin:0;padding:22px 20px 40px;line-height:1.5;font-size:14px;
+           -webkit-font-smoothing:antialiased}
+      .wrap{max-width:1500px;margin:0 auto}
+      .head{display:flex;align-items:center;gap:13px;padding-bottom:16px;
+            border-bottom:1px solid var(--line);margin-bottom:22px}
+      .head svg{width:26px;flex:none}
+      .brand{font-size:.82rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase}
+      .head h1{font-size:.82rem;font-weight:400;color:var(--dim);margin:0}
+      .head h1::before{content:"";display:inline-block;width:1px;height:11px;
+            background:var(--line);margin-right:13px;vertical-align:-1px}
+      .head .meta{margin-left:auto;color:var(--faint);font-size:.72rem;font-variant-numeric:tabular-nums}
+
+      .bar{display:flex;flex-wrap:wrap;margin-bottom:24px}
+      .stat{display:flex;flex-direction:column;padding-right:24px;margin-right:24px;
+            border-right:1px solid var(--line2);min-width:78px}
+      .stat:last-child{border-right:0}
+      .stat b{font-size:1.5rem;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+      .stat span{font-size:.62rem;color:var(--faint);text-transform:uppercase;letter-spacing:.09em}
+      .stat b.good{color:var(--ok)} .stat b.warn{color:var(--warn)} .stat b.bad{color:var(--bad)}
+
+      h2{font-size:.63rem;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);
+         margin:24px 0 9px;font-weight:600}
+      .panel{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:14px 16px}
+      .cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px}
+      @media(max-width:1000px){.cols{grid-template-columns:1fr}}
+      table{width:100%;border-collapse:collapse;font-size:.79rem}
+      th{text-align:left;font-weight:600;color:var(--faint);font-size:.6rem;text-transform:uppercase;
+         letter-spacing:.09em;padding:0 10px 7px 0;border-bottom:1px solid var(--line)}
+      td{padding:7px 10px 7px 0;border-bottom:1px solid var(--line2);font-variant-numeric:tabular-nums}
+      .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+      .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:8px;vertical-align:1px}
+      .dot.on{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.off{background:var(--bad)}
+      button,select,input{font:inherit;font-size:.78rem;background:#0d0d0d;color:var(--text);
+            border:1px solid var(--line);border-radius:3px;padding:6px 11px}
+      button{cursor:pointer;background:transparent}
+      button:hover{border-color:var(--accent);color:var(--accent)}
+      button.primary{border-color:var(--accent);color:var(--accent)}
+      button.primary:hover{background:var(--accent);color:#0a0a0a}
+      label{color:var(--dim);font-size:.72rem;display:inline-flex;align-items:center;gap:7px}
+      .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px}
+      .msg{font-size:.74rem;color:var(--dim);min-height:1.2em;margin:9px 0 0}
+      /* Proximity meter. Stacked horizontal bars, one per gateway.
+         2px surface gaps between segments so adjacent fills never touch, and
+         rounded outer ends only — the joins stay square so the stack reads as
+         one bar rather than three pills. */
+      .pm{margin:0 0 4px}
+      .pm-row{display:flex;align-items:center;gap:12px;padding:7px 0}
+      .pm-name{width:64px;font-family:ui-monospace,Menlo,monospace;font-size:.82rem;
+               color:var(--ink);flex:none}
+      .pm-track{flex:1;height:22px;background:#151515;border:1px solid var(--line);
+                border-radius:3px;overflow:hidden;display:flex}
+      .pm-seg{height:100%;background:var(--ok);box-shadow:-2px 0 0 0 #151515}
+      .pm-seg:first-child{box-shadow:none}
+      .pm-seg.mid{opacity:.62} .pm-seg.far{opacity:.30}
+      .pm-total{width:104px;text-align:right;font-variant-numeric:tabular-nums;
+                font-size:.82rem;color:var(--faint);flex:none}
+      .pm-empty{color:var(--faint);font-size:.8rem;padding:10px 0}
+
+      canvas{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:3px;
+             background:#0d0d0d}
+      .note{font-size:.72rem;color:var(--faint);margin:10px 0 0;line-height:1.55}
+      .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.7rem;color:var(--faint);margin-top:10px}
+      .legend i{display:inline-block;width:8px;height:8px;margin-right:6px;vertical-align:0}
+      .chip{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;
+            vertical-align:-1px;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+      code{color:var(--accent);font-family:ui-monospace,Menlo,monospace}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="head">
+        <svg viewBox="0 0 1275.6 850.4" xmlns="http://www.w3.org/2000/svg" aria-label="Aetherfield">
+          <path d="M854.4,0c2.2,87.8,27.4,172.2,77.9,244.1,70.5,100.2,182.9,165.4,305.8,177.5,8.5.8,21.4,2.2,37.5,2.4v426.4c-57.4-2.3-113.6-6.4-169.9-17.6C753.7,763.2,478.3,465.7,433.6,111.7l-7.6-70.7v807H0V0h854.4Z" fill="#f2f2f2"/>
+        </svg>
+        <span class="brand">Aetherfield</span>
+        <h1>Scale rehearsal</h1>
+        <div class="meta"><span id="uptime"></span></div>
+      </div>
+
+      <div class="bar">
+        <div class="stat" id="stat-units" title="Distinct units that have checked in at least once since the last reset. The roster forgets a device after ten minutes of silence; this does not.">
+          <b id="s-units">&ndash;</b><span>Units seen</span></div>
+        <div class="stat" id="stat-presence" title="Devices heard at least once in the presence window. This is what detection actually means.">
+          <b id="s-presence">–</b><span>Devices detected now</span></div>
+        <div class="stat" id="stat-blocks" title="Distinct address blocks heard. Each board derives its own, so fewer blocks than boards means two boards clashed — not packet loss.">
+          <b id="s-blocks">&ndash;</b><span>Boards seen</span></div>
+        <div class="stat"><b id="s-expected">–</b><span>Expected /s</span></div>
+        <div class="stat"><b id="s-got">–</b><span>Delivered /s</span></div>
+        <div class="stat"><b id="s-seen">–</b><span>Devices seen</span></div>
+        <div class="stat"><b id="s-dup">–</b><span>Gateways per beacon</span></div>
+        <div class="stat"><b id="s-gw">–</b><span>Gateways</span></div>
+        <div class="stat"><b id="s-adopt">–</b><span>CMD adoption</span></div>
+      </div>
+
+      <div class="cols">
+        <div>
+          <h2>Proximity</h2>
+          <div id="prox"></div>
+          <div class="legend" id="prox-legend">
+            <span><i style="background:#4ade80"></i>near</span>
+            <span><i style="background:#4ade80;opacity:.62"></i>mid</span>
+            <span><i style="background:#4ade80;opacity:.30"></i>far</span>
+          </div>
+          <p class="note">
+            Each device is attributed to the gateway that hears it loudest, and
+            bucketed by how loud it is there. No coordinates are claimed — RSSI
+            moves 10&nbsp;dB when a person turns around, which is fatal to a
+            position fix and survivable for an ordering. The gateway hearing a
+            device most strongly is almost always the nearest one, so carrying
+            a board across the room moves it between bars.
+          </p>
+        </div>
+
+        <div>
+          <h2>Gateways</h2>
+          <div id="gw-wrap"></div>
+
+          <h2>Load</h2>
+          <div class="panel">
+            <div class="row">
+              <button id="c-reset">Reset counters</button>
+            </div>
+            <div class="row">
+              <label>Devices <input id="c-dev" type="number" style="width:76px" /></label>
+              <label>Boards <input id="c-boards" type="number" min="1" style="width:58px" /></label>
+              <label>Seconds / message <input id="c-secs" type="number" step="0.1" min="0.1" max="25.5" style="width:70px" /></label>
+              <label>Success window s <input id="c-win" type="number" step="0.5" min="1" style="width:70px" /></label>
+              <label>Identify addr <input id="c-ident" placeholder="0xA7C2" style="width:82px" /></label>
+              <button id="c-ident-go" type="button">Flash it</button>
+              <label title="Listen before transmitting. Rides in dev_flags, so ONE broadcast switches every device at the same instant — setting boards one at a time gives a fleet that is half each and a smear rather than a measurement.">
+                <input id="c-csma" type="checkbox" /> Carrier sense (CSMA)</label>
+              <button id="c-expapply" class="primary">Apply to fleet</button>
+            </div>
+            <p class="note" id="c-predict"></p>
+            <p class="note" id="c-expect"></p>
+          </div>
+
+          <h2>Light</h2>
+          <div class="panel">
+            <div class="row">
+              <label>Animation <select id="l-anim"></select></label>
+              <label>Bright <input id="l-bright" type="number" min="0" max="255" value="255" style="width:68px" /></label>
+              <label>Group <input id="l-group" type="number" min="0" max="255" value="0" style="width:56px" /></label>
+            </div>
+            <div class="row">
+              <button data-rgb="255,0,0"><span class="chip" style="background:#f00"></span>Red</button>
+              <button data-rgb="0,255,0"><span class="chip" style="background:#0f0"></span>Green</button>
+              <button data-rgb="0,80,255"><span class="chip" style="background:#05f"></span>Blue</button>
+              <button data-rgb="255,107,26"><span class="chip" style="background:#ff6b1a"></span>Aetherfield</button>
+              <button data-rgb="255,255,255"><span class="chip" style="background:#fff"></span>White</button>
+              <button data-rgb="0,0,0" data-anim="0"><span class="chip" style="background:#333"></span>Off</button>
+            </div>
+            <div class="row">
+              <label>Op mode <select id="l-op"></select></label>
+              <label>Param <input id="l-opp" type="number" min="0" max="255" value="100" style="width:66px" /></label>
+              <button id="l-op-send">Send op</button>
+            </div>
+            <p class="note">
+              In op mode 0 the param <em>is</em> the beacon interval:
+              <code>param &times; 100&nbsp;ms</code>, 0 meaning the 1&nbsp;s
+              default. <strong>100 = 10&nbsp;s, 10 = 1&nbsp;s, 3 = 300&nbsp;ms.</strong>
+              That is how you sweep offered load — it re-rates every virtual
+              device on every board at the same instant, over the air, and
+              saves opening an RTT session per board. Set the matching
+              interval above afterwards or the delivery figure is measured
+              against the wrong expectation.
+            </p>
+            <p class="msg" id="c-msg"></p>
+            <p class="note">
+              The boards run the shipping <code>aura_band</code>, so this is the
+              real command path: real dedupe, real group matching, real
+              animation engine. Their RGB LEDs obey it. Watch
+              <strong>CMD adoption</strong> climb as devices echo the sequence
+              they acted on &mdash; that is the delivery statistic, and the room
+              changing colour is the same fact visible from across it.
+            </p>
+          </div>
+
+          <h2>Calibration</h2>
+          <div class="panel">
+            <div class="row">
+              <label>RSSI @ 1 m <input id="c-ref" type="number" style="width:76px" /></label>
+              <label>Path loss n <input id="c-n" type="number" step="0.1" style="width:70px" /></label>
+              <button id="c-apply">Apply</button>
+            </div>
+            <p class="note">
+              Measure both before trusting any distance: put one device exactly
+              1&nbsp;m from a gateway and read its RSSI, then move it to 10&nbsp;m
+              and solve for n. Every estimate on the map scales with these two
+              numbers, and the defaults are textbook values, not your venue.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+        ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+      const dur = (ms) => { const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);
+        return h?`${h}h ${m}m`:m?`${m}m ${s%60}s`:`${s}s`; };
+      const pct = (v) => v === null || v === undefined ? "–" : (v*100).toFixed(1) + "%";
+
+
+      async function stats(){
+        try {
+          const s = await fetch("/api/stats").then(r=>r.json());
+
+          /*
+           * Gateways FIRST, and in their own try.
+           *
+           * Everything below this line is a tile, and a tile that throws took
+           * the gateway table with it — the whole body shares one try, and the
+           * catch is deliberately silent so a server restart does not paint the
+           * screen red. The result was the table vanishing while the counters
+           * kept updating, which looks like the gateways disconnected and is
+           * not. It has now happened twice.
+           */
+          drawGateways(s);
+
+          $("uptime").textContent = "up " + dur(s.uptimeMs);
+
+          /*
+           * Units seen — the demo's headline.
+           *
+           * Green only at the full count, because the claim being made is
+           * "all 3,000 units reached the system" and 2,999 is not that.
+           */
+          const un = s.units;
+          const ue = $("s-units");
+          if (un) {
+            ue.textContent = `${un.seen}/${un.of}`;
+            ue.className = un.seen >= un.of ? "good"
+              : un.rate >= 0.99 ? "warn" : "bad";
+            $("stat-units").title =
+              `${un.seen} of ${un.of} units have checked in at least once since `
+              + `the last reset${un.seen < un.of
+                  ? `. ${un.of - un.seen} have never been heard — check Boards seen `
+                    + `for a block clash before reading this as loss.`
+                  : `.`}`
+              + ` The roster forgets a device after ten minutes of silence; this`
+              + ` count does not.`;
+          }
+
+          /*
+           * Per-beacon delivery is off the wall — it is an engineering
+           * diagnostic, not something to put in front of a client, and at a
+           * glance it reads as a failure rate when it is headroom. Still in
+           * /api/stats as measured.deliveryRate.
+           *
+           * The mismatch it used to warn about has not gone away, so the
+           * warning moves to where the expectation is actually set.
+           */
+          const dRate = s.measured.deliveryRate;
+
+          const pr = s.presence;
+          const pe = $("s-presence");
+          if (pr) {
+            pe.textContent = pct(pr.rate);
+            pe.className = pr.rate === null ? ""
+              : pr.rate >= 0.999 ? "good" : pr.rate >= 0.99 ? "warn" : "bad";
+            $("stat-presence").title =
+              `${pr.seen} of ${pr.of} devices heard within ${(pr.windowMs/1000).toFixed(0)} s `
+              + `(${pr.beaconsPerWindow} beacons each). Worst gap ${pr.worstGapMs === null ? "n/a" : (pr.worstGapMs/1000).toFixed(1) + " s"}. `
+              + `At the measured beacon delivery, the model predicts `
+              + `${(pr.modelledDetection*100).toFixed(2)}% — if the real figure is well below that, `
+              + `loss is concentrated on particular devices rather than spread evenly.`;
+          }
+
+          /*
+           * Sustained presence: the number to put in front of the client.
+           *
+           * "Devices detected" is a snapshot — it can read 100% at every
+           * poll and still miss a device that went dark for twelve seconds
+           * while nobody was sampling. This one cannot be rescued by a
+           * lucky sample, so it is held to a harder standard: anything
+           * below 100% is amber, because one unlit lanyard in a crowd is a
+           * thing a person standing there can see.
+           */
+          /* The sustained figure is still computed and still in
+           * /api/stats as presence.sustained — it is the honest one over a
+           * long run. It is off the wall because two detection percentages
+           * side by side invited the wrong comparison. */
+
+          /*
+           * Boards seen, via distinct address blocks.
+           *
+           * Red the moment it is short, because a clash is the one failure
+           * here that masquerades as a good-faith measurement: the missing
+           * board's 150 addresses are simply absent and everything else still
+           * looks healthy.
+           */
+          const bl = pr && pr.blocks;
+          const be = $("s-blocks");
+          if (bl) {
+            be.textContent = `${bl.seen}/${bl.boardsExpected}`;
+            be.className = bl.clash ? "bad" : "good";
+            const dbl = (bl.doubled || []);
+            $("stat-blocks").title = bl.clash
+              ? `Only ${bl.seen} distinct blocks for ${bl.boardsExpected} boards. `
+                + `Two boards derived the same block and are emitting the same `
+                + `addresses — this reads as loss but is not.\n\n`
+                + (dbl.length
+                    ? `Block ${dbl.map(d => `${d.block} (${d.ratio}x the fleet rate)`).join(", ")}`
+                      + ` is carrying two boards. Identify address `
+                      + dbl.map(d => "0x" + (0x1000 + d.block * (s.expected.perBlock || 150))
+                          .toString(16).toUpperCase()).join(", ")
+                      + ` and BOTH boards will light up — then 'sim block <free>' on one.`
+                    : `Rates look even so far; give it a few beacon intervals.`)
+              : `${bl.seen} distinct blocks: ${bl.list.join(", ")}.`;
+          }
+
+          $("s-expected").textContent = Math.round(s.expected.beaconsPerSec);
+          $("s-got").textContent = s.measured.sightingsPerSec;
+          $("s-seen").textContent = `${s.measured.devicesSeen}/${s.expected.devices}`;
+          $("s-dup").textContent = s.fleet.duplicationFactor.toFixed(2);
+          $("s-gw").textContent = s.gateways.length;
+          const dl = s.downlink || {};
+          const rate = dl.adoptionRate ?? null;
+          const ad = $("s-adopt");
+          ad.textContent = pct(rate);
+          ad.className = rate === null ? ""
+            : rate > 0.95 ? "good" : rate > 0.8 ? "warn" : "bad";
+          ad.title = dl.seqInFleet === undefined || dl.seqInFleet === null
+            ? "no device has reported a command yet"
+            : `${dl.adopted} of ${s.measured.devicesSeen} devices are on `
+              + `cmd seq ${dl.seqInFleet}; ${dl.distinctSeqs} distinct seq(s) in the fleet`;
+
+          $("c-expect").textContent =
+            `${s.expected.devices} devices at ${s.expected.intervalMs} ms = `
+            + `${Math.round(s.expected.beaconsPerSec)} beacons/s offered. `
+            + `Range 0x${s.expected.base.toString(16).toUpperCase()}`
+            + `-0x${s.expected.top.toString(16).toUpperCase()}. `
+            + (s.measured.devicesUnexpected
+                ? `${s.measured.devicesUnexpected} device(s) outside that range are being ignored. `
+                : "")
+            + (s.dedupe
+                ? `Dedupe window ${s.dedupe.ms} ms`
+                  + (s.dedupe.safe ? "." :
+                     " — TOO WIDE for this interval; consecutive beacons are being "
+                     + "merged and the delivered rate is reading low.")
+                : "Server predates the dedupe fix — restart it.");
+
+          /*
+           * The expectation check, moved here from the delivery tile.
+           *
+           * More arriving than the fleet is supposed to send means the boards
+           * are not on the interval this panel claims, so the denominator is
+           * wrong and so is every figure resting on it — including the
+           * detection headline. It belongs next to the field that sets it.
+           */
+          const exp = $("c-expect");
+          if (dRate !== null && dRate > 1.1) {
+            const realPct = Math.round(
+              s.measured.sightingsPerSec / s.expected.beaconsPerSec * 100);
+            exp.innerHTML += `<br><span style="color:var(--warn)">`
+              + `The fleet is delivering ${realPct}% of what this expects, i.e. more `
+              + `than it should be able to. The boards are NOT on `
+              + `${(s.expected.intervalMs / 1000)} s — press Apply to fleet to command `
+              + `it, or set Seconds / message to match. Until then the detection `
+              + `figure is measured against the wrong number.</span>`;
+          }
+
+        } catch (e) {
+          /* A server restart mid-poll is normal and not worth a red screen.
+           * Silently swallowing a real bug is how the gateway table went
+           * missing twice, so it goes to the console either way. */
+          console.error("[stats]", e);
+        }
+      }
+
+      /*
+       * Its own function and its own try.
+       *
+       * This is the panel you stare at when the system is misbehaving, so it
+       * must be the last thing to break. It used to be built near the end of
+       * one long try block, and a single undefined field earlier in that block
+       * — from a browser newer than the server — made the whole table vanish
+       * while the counters above it kept updating. That reads as "the gateway
+       * disconnected", which is a lie, and an expensive one.
+       */
+      function drawGateways(s) {
+        try {
+          const gws = s.gateways || [];
+          $("gw-wrap").innerHTML = gws.length ? `<table>
+            <tr><th>Gateway</th><th>Address</th><th>Beacons /s</th><th>Lines</th><th>Placed</th></tr>
+            ${gws.map(g=>`<tr>
+              <td><span class="dot ${g.stale?"warn":"on"}"></span><strong>${esc(g.id ?? "(no HELLO)")}</strong></td>
+              <td class="mono">${esc(g.remote ?? "—")}</td>
+              <td>${g.perSecond ?? "—"}</td><td>${g.lines ?? "—"}</td>
+              <td>${g.positioned ? "yes" : '<span style="color:var(--bad)">no</span>'}</td>
+            </tr>`).join("")}
+          </table>` : `<div class="note">No gateways connected on TCP :9000.</div>`;
+        } catch (e) {
+          $("gw-wrap").innerHTML =
+            `<div class="note">gateway table failed to render: ${esc(e.message)}</div>`;
+        }
+      }
+
+      /*
+       * Proximity meter.
+       *
+       * Replaces the position map. Trilateration wanted coordinates out of a
+       * measurement that swings 10 dB when a person turns around, and the
+       * clamp turned every failure into a confident dot against a wall.
+       *
+       * Ordering is what RSSI can actually carry: the gateway hearing a device
+       * loudest is almost always the nearest. So the claim shrinks to "this
+       * device is nearest THIS gateway, and roughly this close" — which is
+       * both defensible and, for a demo, more legible than a cloud of dots.
+       */
+      async function drawMap(){
+        let s;
+        try { s = await fetch("/api/stats").then(r=>r.json()); } catch { return; }
+
+        const p = s.proximity;
+        const host = $("prox");
+        if (!host) return;
+
+        if (!p || !p.gateways.length) {
+          host.innerHTML = '<div class="pm-empty">No gateway connected.</div>';
+          return;
+        }
+
+        // One scale across all bars, so bar length compares between gateways
+        // rather than each filling its own track.
+        const peak = Math.max(1, ...p.gateways.map((g) => g.total));
+
+        host.innerHTML = '<div class="pm">' + p.gateways.map((g) => {
+          const seg = (n, cls) => n
+            ? `<div class="pm-seg ${cls}" style="width:${(n / peak) * 100}%" `
+              + `title="${n} device(s) ${cls || "near"} ${esc(g.gw)}"></div>`
+            : "";
+          return `<div class="pm-row">
+              <div class="pm-name">${esc(g.gw)}</div>
+              <div class="pm-track">
+                ${seg(g.near, "")}${seg(g.mid, "mid")}${seg(g.far, "far")}
+              </div>
+              <div class="pm-total">${g.total}</div>
+              <div class="pm-total" title="Devices this gateway can hear at all, and how loud they are to it. Three gateways in one room should be within a few dB of each other — a gap of 10-20 dB is an antenna difference, not a distance.">${
+                g.medianRssi === null || g.medianRssi === undefined
+                  ? "&mdash;"
+                  : `${g.hears} @ ${g.medianRssi}`}</div>
+            </div>`;
+        }).join("") + "</div>";
+
+        $("prox-legend").querySelectorAll("span")[0].lastChild.textContent =
+          ` near (\u2265 ${p.nearDbm} dBm)`;
+        $("prox-legend").querySelectorAll("span")[1].lastChild.textContent =
+          ` mid (${p.midDbm} to ${p.nearDbm})`;
+        $("prox-legend").querySelectorAll("span")[2].lastChild.textContent =
+          ` far (< ${p.midDbm} dBm)`;
+      }
+
+      async function post(url, body, msgEl){
+        const m = $(msgEl || "c-msg");
+        try {
+          const r = await fetch(url, {method:"POST",headers:{"Content-Type":"application/json"},
+                                     body: JSON.stringify(body)});
+          const j = await r.json().catch(()=>({}));
+          if (!r.ok) throw new Error(j.error || "HTTP "+r.status);
+          m.textContent = j.line ? `sent to ${j.gatewaysSent} gateway(s)` : "ok";
+          return j;
+        } catch(e){ m.textContent = "failed: " + e.message; }
+      }
+
+      document.addEventListener("click", (ev) => {
+        const b = ev.target.closest("button[data-rgb]");
+        if (!b) return;
+        const [r, g, bl] = b.dataset.rgb.split(",").map(Number);
+        post("/api/cmd", {
+          group: Number($("l-group").value) || 0,
+          anim: b.dataset.anim !== undefined ? Number(b.dataset.anim)
+                                             : Number($("l-anim").value),
+          r, g, b: bl,
+          bright: Number($("l-bright").value),
+          // dev_flags bit 2. Carried on every command so the fleet cannot
+          // drift into a mixed state after a device misses one.
+          devFlags: $("c-csma").checked ? 4 : 0,
+        });
+      });
+
+      /*
+       * Flash one address.
+       *
+       * Used to find two boards that derived the same block: they share every
+       * address including slot 0, so identifying it lights BOTH and the clash
+       * stops being an arithmetic problem and becomes two LEDs in the room.
+       */
+      $("c-ident-go").addEventListener("click", () => {
+        const raw = $("c-ident").value.trim();
+        if (raw) post("/api/identify", { addr: raw });
+      });
+
+      $("l-op-send").addEventListener("click", async () => {
+        const mode = Number($("l-op").value);
+        const param = Number($("l-opp").value);
+        await post("/api/op", { mode, param });
+        // Mode 0's param is the beacon interval, so keep the expectation
+        // honest without making the operator remember to.
+        if (mode === 0) {
+          const ms = param ? param * 100 : 1000;
+          $("c-secs").value = ms / 1000;
+          await post("/api/expected", {
+            devices: Number($("c-dev").value),
+            boards: Number($("c-boards").value) || 1,
+            beaconIntervalMs: ms,
+          });
+          predict();
+        }
+      });
+
+      fetch("/api/meta").then(r => r.json()).then(m => {
+        $("l-anim").innerHTML = m.anims
+          .map((n, i) => `<option value="${i}" ${i === 2 ? "selected" : ""}>${i} ${n}</option>`).join("");
+        $("l-op").innerHTML = m.ops.map((n, i) => `<option value="${i}">${i} ${n}</option>`).join("");
+      });
+
+      $("c-reset").addEventListener("click", () => post("/api/reset", {}));
+
+      /*
+       * One button, both halves.
+       *
+       * The interval has to be told to the FLEET (over the air, as op_param)
+       * and to the SERVER (so delivery is measured against the right
+       * expectation). Two separate controls meant they drifted apart, and a
+       * mismatched expectation makes the headline read wrong in the
+       * flattering direction. Set them together or not at all.
+       */
+      $("c-expapply").addEventListener("click", async () => {
+        const secs = Number($("c-secs").value);
+        const param = Math.round(secs * 10);          // op_param is x100 ms
+
+        if (!(param >= 1 && param <= 255)) {
+          $("c-msg").textContent = "seconds/message must be 0.1 to 25.5";
+          return;
+        }
+        await post("/api/op", { mode: 0, param });     // the fleet, over the air
+        await post("/api/expected", {                  // the server's yardstick
+          devices: Number($("c-dev").value),
+          boards: Number($("c-boards").value) || 1,
+          beaconIntervalMs: param * 100,
+          presenceWindowMs: Number($("c-win").value) * 1000,
+        });
+      });
+
+      /* What the model predicts for the knobs as they stand, so the trade-off
+         is visible while you turn them rather than after the fact. */
+      function predict() {
+        const N = Number($("c-dev").value);
+        const T = Number($("c-secs").value);
+        const W = Number($("c-win").value);
+        if (!(N > 0 && T > 0 && W > 0)) return;
+
+        const TAU = 736e-6;
+        const G = (N * TAU) / T;
+        const n = W / T;
+        const row = (k, label) => {
+          const p = Math.min(1, Math.exp(-k * G));
+          const det = 1 - Math.pow(1 - p, n);
+          return `${label} ${(det * 100).toFixed(1)}%`;
+        };
+        $("c-predict").textContent =
+          `${N} devices every ${T}s = ${(N / T).toFixed(0)} beacons/s, `
+          + `${(G * 100).toFixed(0)}% of the channel, ${n.toFixed(1)} chances per window. `
+          + `Modelled detection — ${row(2, "as shipped (no carrier sense):")}, `
+          + `${row(0.8, "with CSMA:")}.`;
+      }
+      ["c-dev", "c-boards", "c-secs", "c-win"].forEach((id) =>
+        $(id).addEventListener("input", predict));
+      $("c-apply").addEventListener("click", async () => {
+        await post("/api/model", {
+          refRssi: Number($("c-ref").value),
+          pathLossExp: Number($("c-n").value),
+        });
+        drawMap();
+      });
+
+      fetch("/api/config").then(r=>r.json()).then(c=>{
+        $("c-ref").value = c.model.refRssi;
+        $("c-n").value = c.model.pathLossExp;
+        $("c-dev").value = c.expected.devices;
+        $("c-boards").value = c.expected.blocks ?? 1;
+        $("c-secs").value = c.expected.beaconIntervalMs / 1000;
+        $("c-win").value = (c.expected.presenceWindowMs ?? 7500) / 1000;
+        predict();
+      });
+
+      stats(); setInterval(stats, 1000);
+      drawMap(); setInterval(drawMap, 2000);
+    </script>
+  </body>
+</html>

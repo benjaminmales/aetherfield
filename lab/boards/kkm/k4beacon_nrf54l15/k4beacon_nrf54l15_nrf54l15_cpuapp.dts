@@ -1,0 +1,94 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <nordic/nrf54l15_cpuapp.dtsi>
+#include "k4beacon_nrf54l15_common.dtsi"
+
+/ {
+	model = "KKM K4 Beacon nRF54L15";
+	compatible = "kkm,k4beacon-nrf54l15-cpuapp";
+
+	chosen {
+		zephyr,code-partition = &slot0_partition;
+		zephyr,sram = &cpuapp_sram;
+		zephyr,flash = &cpuapp_rram;
+		zephyr,flash-controller = &rram_controller;
+		zephyr,console = &uart30;
+		zephyr,shell-uart = &uart30;
+		zephyr,ieee802154 = &ieee802154;
+	};
+};
+
+&cpuapp_sram { status = "okay"; };
+
+&grtc {
+	owned-channels = <0 1 2 3 4 5 6 7 8 9 10 11>;
+	/* Channels 7-11 reserved for Zero Latency IRQs, 3-4 for FLPR */
+	child-owned-channels = <3 4 7 8 9 10 11>;
+	status = "okay";
+};
+
+&clock    { status = "okay"; };
+&uart30   { status = "okay"; };
+&pwm20    { status = "okay"; };
+&gpio0    { status = "okay"; };
+&gpio1    { status = "okay"; };
+&gpio2    { status = "okay"; };
+&gpiote20 { status = "okay"; };
+&gpiote30 { status = "okay"; };
+
+&regulators { status = "okay"; };
+
+/* L3 4.7 uH is populated, so the buck is real rather than an option. */
+&vregmain {
+	status = "okay";
+	regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
+};
+
+/* X1 32.768 kHz / 7 pF. 14000 fF is the value KKM specify in their readme —
+ * not the 7 pF on the part, which catches people out. */
+&lfxo {
+	load-capacitors = "internal";
+	load-capacitance-femtofarad = <14000>;
+	status = "okay";
+};
+
+&hfxo {
+	load-capacitors = "internal";
+	load-capacitance-femtofarad = <8000>;
+	status = "okay";
+};
+
+&ieee802154 { status = "okay"; };
+&temp       { status = "okay"; };
+&radio      { status = "okay"; };
+
+&cpuapp_rram {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x0 DT_SIZE_K(64)>;
+		};
+
+		slot0_partition: partition@10000 {
+			label = "image-0";
+			reg = <0x10000 DT_SIZE_K(664)>;
+		};
+
+		slot1_partition: partition@b6000 {
+			label = "image-1";
+			reg = <0xb6000 DT_SIZE_K(664)>;
+		};
+
+		storage_partition: partition@15c000 {
+			label = "storage";
+			reg = <0x15c000 DT_SIZE_K(36)>;
+		};
+	};
+};

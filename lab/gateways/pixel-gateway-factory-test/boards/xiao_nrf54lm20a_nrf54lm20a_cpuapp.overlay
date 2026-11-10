@@ -1,0 +1,42 @@
+/*
+ * Aetherfield gateway factory test — Seeed XIAO nRF54LM20A on the Seeed XIAO
+ * W5500 Ethernet Adapter. Pinout matches the production gateway firmware.
+ *
+ *   W5500 SCK   D8    P1.04   |
+ *   W5500 MISO  D9    P1.05   |  spi23 (xiao_spi), the XIAO SPI header
+ *   W5500 MOSI  D10   P1.06   |
+ *   W5500 CS    D1    P1.31
+ *   W5500 INT   not routed  -> test 4 reports SKIP
+ *   W5500 RST   not routed  -> software reset (MR bit 7)
+ *
+ * >>> If the adapter is ever revised to route INT or RST to the XIAO, add
+ * >>> int-gpios / reset-gpios below (e.g. <&xiao_d 2 GPIO_ACTIVE_LOW>) and the
+ * >>> test will exercise them. That is the only edit this file should need.
+ */
+
+&xiao_spi {
+	status = "okay";
+	cs-gpios = <&xiao_d 1 GPIO_ACTIVE_LOW>;          /* W5500 CS -> D1 */
+
+	w5500: w5500@0 {
+		compatible = "aetherfield,w5500-raw";
+		reg = <0>;
+		spi-max-frequency = <16000000>;
+	};
+};
+
+/* Native USB is unused (console goes through the onboard SAMD11 on uart20).
+ * Disable the wrapper as well as the device, as in the gateway firmware. */
+&usbhs_wrapper {
+	status = "disabled";
+};
+
+&usbhs {
+	status = "disabled";
+};
+
+/* The plain (non-Sense) XIAO has no IMU fitted; stop its driver logging an
+ * error on every boot. */
+&lsm6ds3tr_c {
+	status = "disabled";
+};

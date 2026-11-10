@@ -1,0 +1,11 @@
+[Unit]
+Description=AURA gateway AP fallback (raise setup hotspot when offline)
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+# Set a strong AP password here (printed on the enclosure). 8+ chars.
+Environment=AP_PASSWORD=aetherfield-setup
+# Edit this path to where the repo lives on the Pi:
+ExecStart=/home/pi/aetherfield-platform/GATEWAY/pi-bridge/scripts/ap-fallback.sh

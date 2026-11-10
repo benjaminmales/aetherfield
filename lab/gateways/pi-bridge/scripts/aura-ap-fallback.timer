@@ -1,0 +1,13 @@
+[Unit]
+Description=Periodic AURA gateway AP-fallback check
+
+[Timer]
+# The boot service raises the AP immediately; this supervisor then checks every
+# 30s — keeping the AP while an operator is connected, dropping it after the boot
+# window if nobody joined, and re-raising it if the venue Wi-Fi is unreachable.
+OnBootSec=10
+OnUnitActiveSec=30
+AccuracySec=5
+
+[Install]
+WantedBy=timers.target

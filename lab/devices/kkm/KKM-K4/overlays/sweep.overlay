@@ -1,0 +1,10 @@
+/*
+ * Release P1.10 from the PWM driver so the pin sweep can drive it as a plain
+ * GPIO. The Zephyr nRF PWM driver applies its pinctrl state at device init, so
+ * without this the sweep and the PWM peripheral would both own P1.10.
+ *
+ * Pair with sweep.conf.
+ */
+&pwm20 {
+	status = "disabled";
+};

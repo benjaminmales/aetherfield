@@ -1,0 +1,77 @@
+.afd-root {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(8, 12, 20, 0.82);
+  backdrop-filter: blur(7px);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #e8edf9;
+}
+.afd-card {
+  background: #121b2e;
+  border: 1px solid #27324c;
+  border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.55);
+  animation: afd-in 0.28s ease;
+}
+@keyframes afd-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: none; }
+}
+.afd-gate { max-width: 380px; text-align: center; }
+.afd-intro { max-width: 480px; }
+.afd-aura { max-width: 720px; }
+
+.afd-logo { height: 34px; width: auto; margin-bottom: 14px; filter: brightness(0) invert(1); opacity: 0.9; }
+.afd-kicker { text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.68rem; color: #fb7a45; font-weight: 500; }
+.afd-card h2 { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; margin: 10px 0 12px; }
+.afd-card p { color: #cfd8ec; line-height: 1.6; font-size: 0.95rem; margin: 8px 0; }
+.afd-muted { color: #9aa7c4 !important; font-size: 0.88rem !important; }
+
+.afd-gate input {
+  width: 100%;
+  margin: 8px 0 4px;
+  padding: 12px 14px;
+  border-radius: 11px;
+  border: 1px solid #36436a;
+  background: #0b1120;
+  color: #e8edf9;
+  font-size: 0.95rem;
+  outline: none;
+}
+.afd-gate input:focus { border-color: #38bdf8; }
+.afd-err { color: #fca5a5; font-size: 0.85rem; margin: 6px 0; }
+
+.afd-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(52, 211, 153, 0.12); color: #34d399;
+  font-weight: 500; font-size: 0.72rem; letter-spacing: 0.04em;
+  padding: 5px 12px; border-radius: 999px; text-transform: uppercase;
+}
+.afd-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
+
+.afd-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+.afd-btn {
+  flex: 1; min-width: 140px;
+  border: 1px solid #36436a; background: transparent; color: #cfd8ec;
+  font-weight: 500; padding: 12px 18px; border-radius: 11px; cursor: pointer;
+  font-family: inherit; font-size: 0.92rem; transition: all 0.15s;
+}
+.afd-btn:hover { border-color: #38bdf8; color: #fff; }
+.afd-btn-primary {
+  border: none; background: linear-gradient(90deg, #fb7a45, #ffb35c);
+  color: #1a0e09; font-weight: 700;
+}
+.afd-btn-primary:hover { transform: translateY(-1px); color: #1a0e09; }
+.afd-btn:disabled { opacity: 0.5; cursor: default; }
+
+.afd-aura-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+@media (max-width: 640px) { .afd-aura-grid { grid-template-columns: 1fr; } }
+.afd-aura-item { background: #18213a; border: 1px solid #27324c; border-radius: 12px; padding: 14px 16px; }
+.afd-aura-h { font-weight: 600; font-size: 0.95rem; color: #38bdf8; margin-bottom: 6px; }
+.afd-aura-item p { margin: 0; font-size: 0.86rem; color: #b7c2da; line-height: 1.5; }

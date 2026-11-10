@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Application overlay for the K7 Beacon. Auto-applied by Zephyr when building
+ * this app for board k7beacon_nrf54l15/nrf54l15/cpuapp (filename matches the
+ * normalised board target).
+ *
+ * The RGB LED, clocks, radio and partitions live in the board definition
+ * (boards/kkm/k7beacon_nrf54l15/). This overlay carries the board-specific
+ * peripherals the application owns and will extend: the user button now, and
+ * scaffolding for the accelerometer / FRAM / NFC to be brought up later.
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	/*
+	 * "KEY" tactile switch on P0.02 -> GND. Internal pull-up, active-low.
+	 * Reserved for NFC field-detect / user input work.
+	 */
+	buttons: buttons {
+		compatible = "gpio-keys";
+
+		usr_btn: usr-btn {
+			gpios = <&gpio0 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "KEY";
+			zephyr,code = <INPUT_KEY_0>;
+		};
+	};
+
+	aliases {
+		sw0 = &usr_btn;
+	};
+};
+
+/*
+ * ----------------------------------------------------------------------------
+ * Future peripherals — uncomment and complete when bringing these up.
+ *
+ * LIS2DW12 accelerometer (I2C):  SDA = P1.04, SCL = P1.08, INT1 = P1.06,
+ *                                INT2 = P1.07.  SA0 sets the 7-bit address
+ *                                (0x18 if SA0=0, 0x19 if SA0=1 — check R6/R7).
+ *
+ *   &pinctrl {
+ *       i2c21_default: i2c21_default {
+ *           group1 {
+ *               psels = <NRF_PSEL(TWIM_SDA, 1, 4)>,
+ *                       <NRF_PSEL(TWIM_SCL, 1, 8)>;
+ *           };
+ *       };
+ *       i2c21_sleep: i2c21_sleep {
+ *           group1 {
+ *               psels = <NRF_PSEL(TWIM_SDA, 1, 4)>,
+ *                       <NRF_PSEL(TWIM_SCL, 1, 8)>;
+ *               low-power-enable;
+ *           };
+ *       };
+ *   };
+ *
+ *   &i2c21 {
+ *       status = "okay";
+ *       pinctrl-0 = <&i2c21_default>;
+ *       pinctrl-1 = <&i2c21_sleep>;
+ *       pinctrl-names = "default", "sleep";
+ *       lis2dw12: lis2dw12@19 {
+ *           compatible = "st,lis2dw12";
+ *           reg = <0x19>;
+ *           irq-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+ *       };
+ *   };
+ *   (also set CONFIG_I2C=y, CONFIG_SENSOR=y, CONFIG_LIS2DW12=y)
+ *
+ * FRAM FM25W16A on the QSPI pins (P2.00..P2.05) — st/cypress SPI FRAM via spi00.
+ * NFC antenna on P1.02 (NFC1) / P1.03 (NFC2) — enable &nfct and nfct pin protect.
+ * ----------------------------------------------------------------------------
+ */

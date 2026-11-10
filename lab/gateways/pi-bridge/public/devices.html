@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gateway devices</title>
+    <style>
+      :root {
+        --bg: #0f172a; --panel: #1e293b; --panel-2: #172032;
+        --line: #334155; --text: #e2e8f0; --dim: #94a3b8; --faint: #64748b;
+        --accent: #7dd3fc; --ok: #34d399; --warn: #fbbf24; --bad: #f87171;
+      }
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: var(--bg); color: var(--text);
+        margin: 0; padding: 20px; line-height: 1.5;
+      }
+      .wrap { max-width: 1100px; margin: 0 auto; }
+      h1 { font-size: 1.4rem; margin: 0 0 2px; }
+      a { color: var(--accent); }
+      .sub { color: var(--dim); font-size: .85rem; margin: 0 0 18px; }
+
+      .bar {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+      }
+      .stat { display: flex; flex-direction: column; min-width: 88px; }
+      .stat b { font-size: 1.25rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+      .stat span { font-size: .7rem; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+      .spacer { flex: 1; }
+      .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+      .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+      .dot.off { background: var(--bad); }
+      .pill {
+        font-size: .72rem; padding: 3px 9px; border-radius: 999px;
+        background: var(--panel-2); border: 1px solid var(--line); color: var(--dim);
+        white-space: nowrap;
+      }
+
+      .grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+      .card {
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 10px; padding: 12px 14px; transition: border-color .2s, opacity .3s;
+      }
+      .card.stale { opacity: .45; }
+      .card.gesture { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+      .card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+      .uuid { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.05rem; font-weight: 600; }
+      .band { font-size: .72rem; color: var(--faint); }
+      .rows { margin-top: 10px; display: grid; gap: 5px; font-size: .8rem; }
+      .row { display: flex; justify-content: space-between; gap: 10px; }
+      .row span:first-child { color: var(--faint); }
+      .row span:last-child { font-variant-numeric: tabular-nums; }
+      .sig { display: flex; gap: 2px; align-items: flex-end; height: 14px; }
+      .sig i { width: 4px; background: var(--line); border-radius: 1px; }
+      .sig i:nth-child(1) { height: 4px; } .sig i:nth-child(2) { height: 7px; }
+      .sig i:nth-child(3) { height: 10px; } .sig i:nth-child(4) { height: 14px; }
+      .sig i.lit { background: var(--ok); }
+      .sig i.lit.mid { background: var(--warn); }
+      .sig i.lit.low { background: var(--bad); }
+
+      .panel {
+        background: var(--panel); border: 1px solid var(--line);
+        border-radius: 10px; padding: 14px; margin-top: 16px;
+      }
+      .panel h2 { font-size: .95rem; margin: 0 0 3px; }
+      .panel .note { font-size: .78rem; color: var(--dim); margin: 0 0 12px; }
+      .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+      button {
+        font: inherit; font-size: .82rem; cursor: pointer;
+        background: var(--panel-2); color: var(--text);
+        border: 1px solid var(--line); border-radius: 7px; padding: 7px 13px;
+      }
+      button:hover:not(:disabled) { border-color: var(--accent); }
+      button:disabled { opacity: .4; cursor: not-allowed; }
+      button .chip { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; }
+      .empty { text-align: center; color: var(--faint); padding: 40px 20px; border: 1px dashed var(--line); border-radius: 10px; }
+      .msg { font-size: .8rem; margin-top: 10px; min-height: 1.2em; color: var(--dim); }
+      .msg.err { color: var(--bad); }
+      .msg.ok { color: var(--ok); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Gateway devices</h1>
+      <p class="sub">
+        Bands this gateway can hear right now — served locally, works with no internet.
+        · <a href="/">Status</a> · <a href="/field-setup.html">Field setup</a>
+      </p>
+
+      <div class="bar">
+        <div class="stat"><b id="s-online">–</b><span>Online</span></div>
+        <div class="stat"><b id="s-total">–</b><span>Known</span></div>
+        <div class="stat"><b id="s-pkts">–</b><span>Packets</span></div>
+        <div class="spacer"></div>
+        <span class="pill"><span class="dot off" id="s-serial-dot"></span><span id="s-serial">serial —</span></span>
+        <span class="pill" id="s-gw">—</span>
+        <span class="pill" id="s-mode">—</span>
+      </div>
+
+      <div id="devices" class="grid"></div>
+      <div id="empty" class="empty" hidden>
+        No bands heard yet.<br /><small>Power a band on within range, or check the serial link on the status page.</small>
+      </div>
+
+      <div class="panel">
+        <h2>Broadcast LED</h2>
+        <p class="note">
+          Sent to <strong>every band in range</strong> — the v0 downlink has no per-device
+          addressing, so this is one broadcast frame, not a targeted command.
+          Per-device control needs the v1 group mask.
+        </p>
+        <div class="swatches">
+          <button data-led="255,0,0"><span class="chip" style="background:#ff0000"></span>Red</button>
+          <button data-led="0,255,0"><span class="chip" style="background:#00ff00"></span>Green</button>
+          <button data-led="0,80,255"><span class="chip" style="background:#0050ff"></span>Blue</button>
+          <button data-led="255,180,40"><span class="chip" style="background:#ffb428"></span>Gold</button>
+          <button data-led="255,0,180"><span class="chip" style="background:#ff00b4"></span>Magenta</button>
+          <button data-led="255,255,255"><span class="chip" style="background:#ffffff"></span>White</button>
+          <button data-led="0,0,0" data-mode="0"><span class="chip" style="background:#334155"></span>Off</button>
+        </div>
+        <p class="msg" id="led-msg"></p>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const seenGesture = new Map(); // uuid -> lastGestureAt, to flash the card once
+
+      function sigBars(rssi) {
+        // -30 excellent … -90 unusable
+        const lit = rssi == null ? 0 : rssi >= -50 ? 4 : rssi >= -65 ? 3 : rssi >= -78 ? 2 : 1;
+        const cls = lit >= 3 ? "" : lit === 2 ? " mid" : " low";
+        let out = '<span class="sig">';
+        for (let i = 1; i <= 4; i++) out += `<i class="${i <= lit ? "lit" + cls : ""}"></i>`;
+        return out + "</span>";
+      }
+
+      function ago(ms) {
+        if (ms < 1500) return "now";
+        if (ms < 60_000) return Math.round(ms / 1000) + "s ago";
+        return Math.round(ms / 60_000) + "m ago";
+      }
+
+      function card(d) {
+        const flash = d.lastGestureAt && seenGesture.get(d.uuid) !== d.lastGestureAt;
+        if (d.lastGestureAt) seenGesture.set(d.uuid, d.lastGestureAt);
+        const recentGesture = d.lastGestureAt && d.ageMs < 4000;
+        return `
+        <div class="card ${d.online ? "" : "stale"} ${flash || recentGesture ? "gesture" : ""}">
+          <div class="top">
+            <span class="uuid">${d.uuid}</span>
+            ${sigBars(d.rssiAvg)}
+          </div>
+          <div class="band">${d.bandId ? "band " + d.bandId : "unassigned"}${
+            d.nodeIds.length ? " · node " + d.nodeIds.join(", ") : ""
+          }</div>
+          <div class="rows">
+            <div class="row"><span>Signal</span><span>${d.rssiAvg == null ? "—" : d.rssiAvg + " dBm"}</span></div>
+            <div class="row"><span>Last heard</span><span>${ago(d.ageMs)}</span></div>
+            <div class="row"><span>Packets</span><span>${d.packets}</span></div>
+            <div class="row"><span>Gesture</span><span>${
+              d.lastGesture ? d.lastGesture + " ×" + d.gestureCount : "—"
+            }</span></div>
+            <div class="row"><span>Battery</span><span>${
+              d.battery == null ? '<span style="color:#64748b">v1</span>' : d.battery + "%"
+            }</span></div>
+            <div class="row"><span>Capabilities</span><span>${
+              d.caps == null ? '<span style="color:#64748b">v1</span>' : capNames(d.caps)
+            }</span></div>
+          </div>
+        </div>`;
+      }
+
+      // Bit order matches include/aura_radio.h
+      const CAPS = ["RGB", "HP-LED", "IMU", "ACCEL", "MIC", "BTN", "NFC", "FLASH"];
+      const capNames = (n) => CAPS.filter((_, i) => n & (1 << i)).join(" ") || "none";
+
+      async function tick() {
+        try {
+          const r = await fetch("/api/devices", { cache: "no-store" });
+          const j = await r.json();
+          const list = j.devices || [];
+          $("s-online").textContent = j.online ?? 0;
+          $("s-total").textContent = j.total ?? 0;
+          $("s-pkts").textContent = list.reduce((a, d) => a + d.packets, 0);
+          $("devices").innerHTML = list.map(card).join("");
+          $("empty").hidden = list.length > 0;
+        } catch (e) {
+          $("empty").hidden = false;
+          $("empty").innerHTML = "Can't reach the bridge.<br /><small>" + e + "</small>";
+        }
+      }
+
+      async function health() {
+        try {
+          const j = await (await fetch("/health", { cache: "no-store" })).json();
+          $("s-serial").textContent = j.serialOpen ? "serial open" : "serial closed";
+          $("s-serial-dot").className = "dot " + (j.serialOpen ? "on" : "off");
+          $("s-gw").textContent = j.gatewayShortCode || j.gatewayHardwareId || "—";
+          $("s-mode").textContent = `uplink ${j.uplink || "—"} · control ${j.control || "—"}`;
+        } catch { /* status bar just stays stale */ }
+      }
+
+      document.querySelectorAll("button[data-led]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const [r, g, b] = btn.dataset.led.split(",").map(Number);
+          const mode = btn.dataset.mode ? Number(btn.dataset.mode) : 2;
+          const msg = $("led-msg");
+          document.querySelectorAll("button[data-led]").forEach((x) => (x.disabled = true));
+          msg.className = "msg";
+          msg.textContent = "Sending…";
+          try {
+            const res = await fetch("/api/led", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mode, rate: 120, r, g, b }),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j.error || "HTTP " + res.status);
+            msg.className = "msg ok";
+            msg.textContent = `Broadcast sent — mode ${mode}, rgb(${r}, ${g}, ${b}).`;
+          } catch (e) {
+            msg.className = "msg err";
+            msg.textContent = "Failed: " + e.message;
+          } finally {
+            document.querySelectorAll("button[data-led]").forEach((x) => (x.disabled = false));
+          }
+        });
+      });
+
+      tick(); health();
+      setInterval(tick, 1000);
+      setInterval(health, 5000);
+    </script>
+  </body>
+</html>

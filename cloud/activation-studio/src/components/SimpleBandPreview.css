@@ -1,0 +1,123 @@
+.simple-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.simple-band-bezel {
+  width: 148px;
+  padding: 12px 10px 16px;
+  border-radius: 24px;
+  background: linear-gradient(160deg, #1e293b, #0f172a);
+  border: 1px solid var(--border);
+}
+
+.simple-band-screen {
+  border-radius: 16px;
+  background: #020617;
+  min-height: 108px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.simple-band-led {
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  align-self: center;
+}
+
+.simple-band-msg {
+  color: #e2e8f0;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.simple-band-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.simple-band-title.muted {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.simple-band-body {
+  color: #cbd5e1;
+}
+
+.simple-band-caption {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.simple-band--hero .simple-band-bezel {
+  width: 220px;
+  padding: 16px 14px 20px;
+  border-radius: 30px;
+}
+
+.simple-band--hero .simple-band-screen {
+  min-height: 154px;
+  border-radius: 20px;
+  padding: 12px;
+  gap: 10px;
+}
+
+.simple-band--hero .simple-band-led {
+  height: 16px;
+  border-radius: 8px;
+}
+
+.simple-band--hero .simple-band-msg {
+  font-size: 12px;
+}
+
+.simple-band--split {
+  align-items: stretch;
+  width: 100%;
+}
+
+.simple-band-split-row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
+.simple-band-bezel--compact {
+  flex-shrink: 0;
+}
+
+.simple-band-screen--compact {
+  min-height: 0;
+  justify-content: flex-start;
+}
+
+.simple-band-msg-panel {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-page);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.simple-band--split .simple-band-msg {
+  font-size: 12px;
+}
+
+.simple-band--split.simple-band--hero .simple-band-bezel {
+  width: 132px;
+}
+
+.simple-band--split.simple-band--hero .simple-band-screen {
+  min-height: 120px;
+}

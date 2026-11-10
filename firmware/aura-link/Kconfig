@@ -1,0 +1,30 @@
+# Aetherfield gateway application options.
+#
+# GW_INDEX is a Kconfig symbol rather than a bare #define so it can be set from
+# a .conf fragment per build configuration. That matters when flashing several
+# gateways in a row: editing a header between builds is how two gateways end up
+# both claiming 10.10.0.11, which works perfectly until all of them are live.
+
+menu "Aetherfield gateway"
+
+config GW_INDEX
+	int "Gateway index within this server's group (1..30)"
+	default 1
+	range 1 30
+	help
+	  Sets three things at once, all of which must be unique per gateway:
+	    the HELLO name     gw-01 .. gw-30
+	    the static IP      10.10.0.11 .. 10.10.0.40
+	    the TCP source port 50001 .. 50030
+
+	  It ALSO sets this gateway's slot in the downlink stagger, so at 30
+	  gateways they do not all transmit the same command on the same
+	  millisecond. See GW_CMD_STAGGER_MS in gw_config.h.
+
+	  Pick it with an extra Kconfig fragment (gw01.conf, gw02.conf, ...)
+	  rather than by editing a file, so every gateway builds from identical
+	  source.
+
+endmenu
+
+source "Kconfig.zephyr"

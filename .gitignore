@@ -1,0 +1,23 @@
+# Build output. Zephyr trees are build/, build-1/, build_gw02/ ... so match all.
+build/
+build-*/
+build_*/
+_sysbuild/
+dist/
+node_modules/
+
+# Local secrets and overrides. Never committed — copy the .example instead.
+.env
+.env.local
+.env.*.local
+
+# KiCad lock files and autosave backups
+*.lck
+*-backups/
+fp-info-cache
+
+# OS / editor noise
+.DS_Store
+_to_delete/
+*.log
+*.tar.gz

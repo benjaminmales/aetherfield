@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gateway setup</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 540px; margin: 0 auto; padding: 20px 16px 56px;
+        background: #0f172a; color: #e2e8f0;
+      }
+      h1 { font-size: 1.3rem; margin: 0 0 4px; }
+      h2 { font-size: 0.95rem; margin: 0; color: #e2e8f0; }
+      p.hint { color: #94a3b8; font-size: 0.85rem; line-height: 1.45; margin: 6px 0 0; }
+      .card {
+        background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+        padding: 16px; margin-top: 14px;
+      }
+      label { display: block; margin-top: 12px; font-size: 0.82rem; color: #cbd5e1; }
+      input, select {
+        width: 100%; margin-top: 6px; padding: 10px 12px; border-radius: 8px;
+        border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 0.95rem;
+      }
+      .row { display: flex; gap: 8px; align-items: flex-end; }
+      .row > * { flex: 1; }
+      .row > button { flex: 0 0 auto; }
+      button {
+        margin-top: 14px; padding: 10px 16px; border-radius: 8px; border: none;
+        background: #38bdf8; color: #0f172a; font-weight: 600; cursor: pointer; font-size: 0.9rem;
+      }
+      button.secondary { background: #334155; color: #e2e8f0; }
+      button.ghost { background: transparent; border: 1px solid #334155; color: #cbd5e1; }
+      .seg { display: flex; gap: 8px; margin-top: 8px; }
+      .seg button {
+        flex: 1; margin-top: 0; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; font-weight: 500;
+      }
+      .seg button.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; font-weight: 700; }
+      .status-line { font-size: 0.85rem; color: #cbd5e1; line-height: 1.6; }
+      .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #64748b; margin-right: 6px; }
+      .dot.on { background: #34d399; }
+      .dot.off { background: #f87171; }
+      .wifi-list { margin-top: 10px; max-height: 200px; overflow-y: auto; border: 1px solid #334155; border-radius: 8px; }
+      .wifi-item {
+        display: flex; justify-content: space-between; align-items: center; gap: 8px;
+        padding: 9px 12px; cursor: pointer; border-top: 1px solid #1e293b; font-size: 0.85rem;
+      }
+      .wifi-item:first-child { border-top: none; }
+      .wifi-item:hover { background: #243043; }
+      .wifi-item.sel { background: #0c4a6e; }
+      .wifi-meta { color: #94a3b8; font-size: 0.75rem; }
+      #msg { margin-top: 14px; white-space: pre-wrap; font-size: 0.86rem; }
+      #msg.err { color: #fca5a5; } #msg.ok { color: #86efac; }
+      .muted { color: #64748b; font-size: 0.78rem; }
+      a { color: #7dd3fc; }
+      .hidden { display: none; }
+      .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.82rem; }
+      .swatch { display:inline-block; width:18px; height:18px; border-radius:4px; border:1px solid #475569; vertical-align:middle; margin-right:6px; }
+      .chgrid { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+      .chgrid .ch { background:#0f172a; border:1px solid #334155; border-radius:6px; padding:6px 8px; min-width:54px; text-align:center; }
+      .chgrid .ch b { display:block; font-size:0.95rem; }
+      .chgrid .ch span { color:#94a3b8; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.04em; }
+    </style>
+  </head>
+  <body>
+    <h1>Gateway setup</h1>
+    <p class="hint">
+      Join the gateway Wi‑Fi AP, then open this page. Enter the
+      <strong>admin token</strong> (from the Pi’s <code>.env</code> → <code>FIELD_ADMIN_TOKEN</code>).
+      Settings save to <code>config.local.json</code> on the Pi.
+    </p>
+
+    <div class="card">
+      <label>Admin token
+        <input type="password" id="token" autocomplete="off" placeholder="FIELD_ADMIN_TOKEN" />
+      </label>
+      <div class="row">
+        <button type="button" class="secondary" id="remember">Remember (this tab)</button>
+        <button type="button" id="load">Load current</button>
+      </div>
+    </div>
+
+    <!-- Presence uplink -->
+    <div class="card">
+      <h2>Presence uplink</h2>
+      <p class="hint">Where detected bands are reported. Independent of band control.</p>
+      <div class="seg" id="uplinkSeg">
+        <button type="button" data-uplink="none">Off</button>
+        <button type="button" data-uplink="cloud">☁︎ Cloud</button>
+        <button type="button" data-uplink="server">🏟 Server</button>
+      </div>
+      <p class="muted" id="uplinkHelp" style="margin-top:10px;"></p>
+
+      <div id="cloudFields">
+        <label>Telemetry project ID (Supabase UUID, optional)
+          <input type="text" id="telemetryProjectId" placeholder="auto from device pairing if blank" />
+        </label>
+        <label>Supabase URL
+          <input type="text" id="supabaseUrl" placeholder="https://xxx.supabase.co" />
+        </label>
+        <label>Supabase service role key (blank = keep current)
+          <input type="password" id="supabaseServiceRoleKey" autocomplete="off" placeholder="Leave blank to keep" />
+        </label>
+      </div>
+
+      <div id="serverFields" class="hidden">
+        <label>Server URL (the local show server)
+          <input type="text" id="serverUrl" placeholder="http://10.0.0.10:4000" />
+        </label>
+        <p class="muted">Telemetry is POSTed to <code>&lt;server&gt;/api/telemetry</code>. Queues and retries until reachable.</p>
+      </div>
+    </div>
+
+    <!-- Band control -->
+    <div class="card">
+      <h2>Band control</h2>
+      <p class="hint">What animates the bands. directDMX works with no pairing.</p>
+      <div class="seg" id="controlSeg">
+        <button type="button" data-control="none">Off</button>
+        <button type="button" data-control="dmx">🎛 DMX</button>
+        <button type="button" data-control="cloud">☁︎ Cloud</button>
+        <button type="button" data-control="server">🏟 Server</button>
+      </div>
+      <p class="muted" id="controlHelp" style="margin-top:10px;"></p>
+    </div>
+
+    <!-- DMX (Art-Net) -->
+    <div class="card hidden" id="dmxCard">
+      <h2>DMX (Art-Net)</h2>
+      <p class="hint">This gateway is one fixture. Art-Net in on UDP 6454. A command is sent to the bands only when the mapped values change.</p>
+      <div class="row">
+        <label style="margin-top:0;">Universe
+          <input type="number" id="dmxUniverse" min="0" max="32767" placeholder="0" />
+        </label>
+        <label style="margin-top:0;">Start channel
+          <input type="number" id="dmxStart" min="1" max="512" placeholder="1" />
+        </label>
+      </div>
+      <label>Channel layout
+        <select id="dmxLayout">
+          <option value="mrgb">mode · rate · R · G · B (5 ch)</option>
+          <option value="rgb">R · G · B (3 ch) — fixed mode/rate</option>
+        </select>
+      </label>
+      <div class="row" id="dmxFixedWrap">
+        <label style="margin-top:0;">Fixed mode (0–7)
+          <input type="number" id="dmxFixedMode" min="0" max="7" placeholder="1" />
+        </label>
+        <label style="margin-top:0;">Fixed rate (0–255)
+          <input type="number" id="dmxFixedRate" min="0" max="255" placeholder="128" />
+        </label>
+      </div>
+
+      <div class="card" style="margin-top:14px; background:#0b1220;">
+        <div class="status-line"><span class="dot" id="dmxDot"></span><span id="dmxState">Live monitor — save & apply to start</span></div>
+        <div class="chgrid" id="dmxChannels"></div>
+        <p class="status-line" id="dmxDecoded" style="margin-top:10px;"></p>
+        <div class="row">
+          <button type="button" class="ghost" id="dmxTestRed">Test red</button>
+          <button type="button" class="ghost" id="dmxTestOff">Test off</button>
+        </div>
+        <p class="muted">Point QLC+ (or any Art-Net source) at this gateway’s IP, patch the channels above, and watch the values move.</p>
+      </div>
+    </div>
+
+    <!-- Identity -->
+    <div class="card">
+      <h2>Identity</h2>
+      <p class="hint">The serial number is this gateway’s ID — used on its QR for pairing and registration.</p>
+      <label>Serial number
+        <div class="row">
+          <input type="text" id="gatewayHardwareId" placeholder="e.g. 2146d939-4a65-…" />
+          <button type="button" class="ghost" id="genSerial">Generate</button>
+        </div>
+      </label>
+      <p class="muted" id="shortCode" style="margin-top:8px;"></p>
+    </div>
+
+    <!-- Internet connection -->
+    <div class="card">
+      <h2>Internet connection</h2>
+      <div class="status-line" id="netStatus" style="margin-top:8px;">Load current to see status…</div>
+      <div class="row">
+        <button type="button" class="secondary" id="netRefresh">Refresh status</button>
+        <button type="button" class="secondary" id="wifiScan">Scan Wi‑Fi</button>
+      </div>
+
+      <div id="wifiList" class="wifi-list hidden"></div>
+      <label id="wifiPwWrap" class="hidden">Wi‑Fi password
+        <input type="password" id="wifiPassword" autocomplete="off" placeholder="for selected network" />
+      </label>
+      <div class="row">
+        <button type="button" id="wifiConnect" class="hidden">Connect Wi‑Fi</button>
+      </div>
+      <div class="row">
+        <button type="button" class="ghost" id="useCellular">Use dongle (cellular)</button>
+      </div>
+
+      <h2 style="margin-top:18px;">Ethernet (admin + Art‑Net)</h2>
+      <p class="hint">Ethernet carries the local stuff — this setup page and Art‑Net/DMX. Wi‑Fi stays the internet uplink.</p>
+      <div class="seg" id="ethSeg">
+        <button type="button" data-eth="shared">Shared (plug‑in)</button>
+        <button type="button" data-eth="dhcp">DHCP</button>
+        <button type="button" data-eth="static">Static</button>
+      </div>
+      <label id="ethStaticWrap" class="hidden">Static address (CIDR)
+        <input type="text" id="ethAddress" placeholder="10.0.0.10/24" />
+      </label>
+      <p class="muted" id="ethHelp" style="margin-top:8px;"></p>
+      <button type="button" id="ethApply">Apply Ethernet mode</button>
+    </div>
+
+    <!-- Advanced -->
+    <details class="card">
+      <summary class="muted">Advanced</summary>
+      <label>Serial device
+        <input type="text" id="serialPort" placeholder="/dev/ttyACM0" />
+      </label>
+      <label>HTTP port
+        <input type="number" id="httpPort" min="1" max="65535" placeholder="3000" />
+      </label>
+      <label>Wi‑Fi region (2‑letter, setup AP only — e.g. GB, US, DE)
+        <input type="text" id="wifiRegion" maxlength="2" placeholder="GB" style="text-transform:uppercase" />
+      </label>
+      <p class="muted">Only affects the setup hotspot. The venue Wi‑Fi connection adopts the local region automatically.</p>
+      <label>DMX debounce (ms)
+        <input type="number" id="dmxDebounce" min="0" max="1000" placeholder="60" />
+      </label>
+    </details>
+
+    <button type="button" id="save" style="width:100%;">Save &amp; apply</button>
+    <p id="msg" role="status"></p>
+    <p class="hint"><a href="/">← Status</a> · <a href="/health">/health</a></p>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const msg = $("msg");
+      const setMsg = (t, c) => { msg.textContent = t; msg.className = c || ""; };
+      let uplink = "cloud";
+      let control = "none";
+      let selectedSsid = null;
+      let dmxTimer = null;
+
+      const getTok = () => sessionStorage.getItem("fieldAdminToken") || $("token").value.trim();
+      $("remember").onclick = () => {
+        const t = $("token").value.trim();
+        if (t) sessionStorage.setItem("fieldAdminToken", t);
+        setMsg("Token stored for this tab.", "ok");
+      };
+
+      async function api(path, opts) {
+        const tok = getTok();
+        const headers = Object.assign({ "Content-Type": "application/json" },
+          opts && opts.headers, tok ? { Authorization: "Bearer " + tok } : {});
+        const r = await fetch(path, Object.assign({}, opts, { headers }));
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || r.statusText || String(r.status));
+        return j;
+      }
+
+      // --- Uplink ---
+      function applyUplink(u) {
+        uplink = ["none", "cloud", "server"].includes(u) ? u : "cloud";
+        [...$("uplinkSeg").children].forEach((b) => b.classList.toggle("active", b.dataset.uplink === uplink));
+        $("cloudFields").classList.toggle("hidden", uplink !== "cloud");
+        $("serverFields").classList.toggle("hidden", uplink !== "server");
+        $("uplinkHelp").textContent = uplink === "none"
+          ? "No presence reporting — directDMX-only activation, no pairing needed."
+          : uplink === "cloud"
+          ? "Reports detected bands straight to Aetherfield Cloud (Supabase)."
+          : "Reports detected bands to a local show Server.";
+      }
+      [...$("uplinkSeg").children].forEach((b) => (b.onclick = () => applyUplink(b.dataset.uplink)));
+
+      // --- Control ---
+      function applyControl(c) {
+        control = ["none", "dmx", "cloud", "server"].includes(c) ? c : "none";
+        [...$("controlSeg").children].forEach((b) => b.classList.toggle("active", b.dataset.control === control));
+        $("dmxCard").classList.toggle("hidden", control !== "dmx");
+        $("controlHelp").textContent = control === "none"
+          ? "Bands run their autonomous default behaviour."
+          : control === "dmx"
+          ? "Art-Net/DMX into this gateway drives the local bands directly. No internet or pairing required."
+          : control === "cloud"
+          ? "Cloud rules / EventBuilder drive the bands via the control API."
+          : "The local show Server drives the bands.";
+        if (control === "dmx") startDmxPoll(); else stopDmxPoll();
+      }
+      [...$("controlSeg").children].forEach((b) => (b.onclick = () => applyControl(b.dataset.control)));
+
+      function applyLayout(l) {
+        $("dmxFixedWrap").classList.toggle("hidden", l !== "rgb");
+      }
+      $("dmxLayout").onchange = () => applyLayout($("dmxLayout").value);
+
+      // --- DMX live monitor ---
+      const CH_LABELS = { mrgb: ["mode", "rate", "R", "G", "B"], rgb: ["R", "G", "B"] };
+      function renderDmx(j) {
+        const on = j.listening === true;
+        $("dmxDot").className = "dot " + (on ? "on" : "off");
+        $("dmxState").textContent =
+          (on ? "Listening :6454" : "Not listening") +
+          ` · universe ${j.universe} · ${j.packets || 0} pkts` +
+          (j.lastPacketAt ? " · last " + new Date(j.lastPacketAt).toLocaleTimeString() : "") +
+          (j.error ? " · ⚠ " + j.error : "");
+        const labels = CH_LABELS[j.layout] || CH_LABELS.mrgb;
+        const vals = j.patchedChannels || [];
+        $("dmxChannels").innerHTML = labels
+          .map((lab, i) => `<div class="ch"><b>${vals[i] ?? "–"}</b><span>${lab}</span></div>`)
+          .join("");
+        const d = j.decoded;
+        if (d) {
+          $("dmxDecoded").innerHTML =
+            `<span class="swatch" style="background:rgb(${d.r},${d.g},${d.b})"></span>` +
+            `<span class="mono">mode ${d.mode} · rate ${d.rate} · rgb(${d.r}, ${d.g}, ${d.b})</span>`;
+        } else {
+          $("dmxDecoded").textContent = "Awaiting DMX…";
+        }
+      }
+      async function pollDmx() {
+        try { renderDmx(await api("/api/dmx")); } catch (e) { /* keep polling */ }
+      }
+      function startDmxPoll() { stopDmxPoll(); pollDmx(); dmxTimer = setInterval(pollDmx, 800); }
+      function stopDmxPoll() { if (dmxTimer) { clearInterval(dmxTimer); dmxTimer = null; } }
+
+      async function testLed(body) {
+        try { await api("/api/led", { method: "POST", body: JSON.stringify(body) }); setMsg("Test sent.", "ok"); }
+        catch (e) { setMsg("Test failed: " + (e.message || e), "err"); }
+      }
+      $("dmxTestRed").onclick = () => testLed({ mode: 1, rate: 128, r: 255, g: 0, b: 0 });
+      $("dmxTestOff").onclick = () => testLed({ mode: 0, rate: 0, r: 0, g: 0, b: 0 });
+
+      $("genSerial").onclick = () => {
+        $("gatewayHardwareId").value = (crypto.randomUUID && crypto.randomUUID())
+          || ("gw-" + Math.random().toString(16).slice(2, 10));
+      };
+
+      function renderNet(j) {
+        const s = j.status || {};
+        const on = s.online === true;
+        const ssid = s.ssid ? ` · SSID ${s.ssid}` : "";
+        const ip = (s.ips && s.ips.length) ? ` · ${s.ips.join(", ")}` : "";
+        $("netStatus").innerHTML =
+          `<span class="dot ${on ? "on" : "off"}"></span>` +
+          `${on ? "Online" : "Offline"} (${s.connectivity || "unknown"}) · ` +
+          `${s.primaryType || "no link"}${ssid}${ip}`;
+        if (j.wifi && j.wifi.length) renderWifi(j.wifi);
+        else if (j.wifiError) setMsg("Wi‑Fi scan: " + j.wifiError, "err");
+      }
+      function renderWifi(list) {
+        const box = $("wifiList");
+        box.innerHTML = "";
+        list.forEach((n) => {
+          const el = document.createElement("div");
+          el.className = "wifi-item" + (n.inUse ? " sel" : "");
+          el.innerHTML = `<span>${n.ssid}${n.inUse ? " ✓" : ""}</span>` +
+            `<span class="wifi-meta">${n.signal}% · ${n.security}</span>`;
+          el.onclick = () => {
+            selectedSsid = n.ssid;
+            [...box.children].forEach((c) => c.classList.remove("sel"));
+            el.classList.add("sel");
+            $("wifiPwWrap").classList.remove("hidden");
+            $("wifiConnect").classList.remove("hidden");
+            $("wifiConnect").textContent = `Connect to ${n.ssid}`;
+          };
+          box.appendChild(el);
+        });
+        box.classList.remove("hidden");
+      }
+
+      async function refreshNet() {
+        setMsg("Reading network…");
+        try { renderNet(await api("/api/network")); setMsg("Network status updated.", "ok"); }
+        catch (e) { setMsg(String(e.message || e), "err"); }
+      }
+      $("netRefresh").onclick = refreshNet;
+      $("wifiScan").onclick = refreshNet;
+
+      $("wifiConnect").onclick = async () => {
+        if (!selectedSsid) return;
+        setMsg(`Joining ${selectedSsid}…`);
+        try {
+          const j = await api("/api/network", { method: "POST",
+            body: JSON.stringify({ kind: "wifi", ssid: selectedSsid, password: $("wifiPassword").value }) });
+          setMsg((j.message || "Done.") + (j.warning ? "\n\n⚠ " + j.warning : ""), "ok");
+        } catch (e) { setMsg(String(e.message || e), "err"); }
+      };
+      let ethMode = "shared";
+      function applyEth(m) {
+        ethMode = ["shared", "dhcp", "static"].includes(m) ? m : "shared";
+        [...$("ethSeg").children].forEach((b) => b.classList.toggle("active", b.dataset.eth === ethMode));
+        $("ethStaticWrap").classList.toggle("hidden", ethMode !== "static");
+        $("ethHelp").textContent = ethMode === "shared"
+          ? "Pi hands out DHCP at 10.42.0.1 — plug a laptop or DMX console straight in. Admin: http://10.42.0.1:3000 · Art‑Net to 10.42.0.1."
+          : ethMode === "dhcp"
+          ? "Pi joins a venue/lighting LAN as a client. Reach this specific unit by its serial: aura‑gw‑<sn>.local:3000."
+          : "Fixed IP to match a console's Art‑Net subnet (e.g. 2.0.0.10/8).";
+      }
+      [...$("ethSeg").children].forEach((b) => (b.onclick = () => applyEth(b.dataset.eth)));
+      applyEth("shared");
+
+      $("ethApply").onclick = async () => {
+        setMsg(`Setting Ethernet ${ethMode}…`);
+        try {
+          const body = { kind: "ethernet", ethMode };
+          if (ethMode === "static") body.address = $("ethAddress").value.trim();
+          const j = await api("/api/network", { method: "POST", body: JSON.stringify(body) });
+          setMsg(j.message || "Done.", "ok"); setTimeout(refreshNet, 1500);
+        } catch (e) { setMsg(String(e.message || e), "err"); }
+      };
+      $("useCellular").onclick = async () => {
+        setMsg("Bringing up cellular…");
+        try { const j = await api("/api/network", { method: "POST", body: JSON.stringify({ kind: "cellular" }) });
+          setMsg(j.message || "Done.", "ok"); setTimeout(refreshNet, 1500); }
+        catch (e) { setMsg(String(e.message || e), "err"); }
+      };
+
+      $("load").onclick = async () => {
+        setMsg("Loading…");
+        try {
+          const j = await api("/api/field-config");
+          applyUplink(j.uplink || (j.mode === "physical" ? "server" : "cloud"));
+          applyControl(j.control || "none");
+          const d = j.dmx || {};
+          $("dmxUniverse").value = d.universe ?? 0;
+          $("dmxStart").value = d.startChannel ?? 1;
+          $("dmxLayout").value = d.layout || "mrgb";
+          $("dmxFixedMode").value = d.fixedMode ?? 1;
+          $("dmxFixedRate").value = d.fixedRate ?? 128;
+          $("dmxDebounce").value = d.debounceMs ?? 60;
+          applyLayout($("dmxLayout").value);
+          $("gatewayHardwareId").value = j.gatewayHardwareId || "";
+          $("shortCode").innerHTML = j.gatewayShortCode
+            ? "Serial: <b>" + j.gatewayShortCode + "</b>" +
+              (j.mdnsName ? " · reach this unit at <b>" + j.mdnsName + ".local:3000</b>" : "")
+            : "";
+          $("serverUrl").value = j.serverUrl || "";
+          $("telemetryProjectId").value = j.telemetryProjectId || "";
+          $("supabaseUrl").value = j.supabaseUrl || "";
+          $("supabaseServiceRoleKey").value = "";
+          $("serialPort").value = j.serialPort || "";
+          $("httpPort").value = j.httpPort || 3000;
+          $("wifiRegion").value = j.wifiRegion || "GB";
+          setMsg("Loaded. Supabase key: " +
+            (j.supabaseServiceRoleKeySet ? j.supabaseServiceRoleKeyMasked : "(not set)"), "ok");
+          refreshNet();
+        } catch (e) { setMsg(String(e.message || e), "err"); }
+      };
+
+      $("save").onclick = async () => {
+        setMsg("Saving…");
+        try {
+          const body = {
+            uplink,
+            control,
+            dmx: {
+              universe: parseInt($("dmxUniverse").value, 10) || 0,
+              startChannel: parseInt($("dmxStart").value, 10) || 1,
+              layout: $("dmxLayout").value,
+              fixedMode: parseInt($("dmxFixedMode").value, 10) || 0,
+              fixedRate: parseInt($("dmxFixedRate").value, 10) || 0,
+              debounceMs: parseInt($("dmxDebounce").value, 10) || 0,
+            },
+            gatewayHardwareId: $("gatewayHardwareId").value.trim(),
+            serverUrl: $("serverUrl").value.trim(),
+            telemetryProjectId: $("telemetryProjectId").value.trim(),
+            supabaseUrl: $("supabaseUrl").value.trim(),
+            serialPort: $("serialPort").value.trim(),
+            httpPort: parseInt($("httpPort").value, 10) || 3000,
+            wifiRegion: $("wifiRegion").value.trim(),
+          };
+          const sk = $("supabaseServiceRoleKey").value.trim();
+          if (sk) body.supabaseServiceRoleKey = sk;
+          const j = await api("/api/field-config", { method: "POST", body: JSON.stringify(body) });
+          setMsg((j.message || "Saved.") + (j.httpPortRestartRequired ? "\nRestart the service for the new HTTP port." : ""), "ok");
+          if (control === "dmx") startDmxPoll();
+        } catch (e) { setMsg(String(e.message || e), "err"); }
+      };
+
+      applyUplink("cloud");
+      applyControl("none");
+      applyLayout("mrgb");
+    </script>
+  </body>
+</html>

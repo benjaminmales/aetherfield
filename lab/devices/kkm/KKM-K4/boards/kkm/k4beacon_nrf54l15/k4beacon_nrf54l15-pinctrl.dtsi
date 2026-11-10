@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) 2026
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * K4 Beacon pin control -- FROM THE SCHEMATIC (K4_nRF54L15_SCH V1.1),
+ * received 2026-09-11. No longer inferred from anything.
+ *
+ *   LED1  D1  red 0603, R1 1 k   P1.04/AIN0   PWM20 OUT0
+ *   LED2  D2  red 0603, R3 1 k   P2.03        PWM20 OUT1
+ *   KEY   SW1 to GND             P0.04
+ *   RXD                          P0.00        UART30
+ *   TXD                          P0.01        UART30
+ *   SCL   LIS2DW12               P1.08/CLK16M I2C21
+ *   SDA   LIS2DW12               P1.06/AIN2   I2C21
+ *   INT1  LIS2DW12               P1.13/AIN6
+ *   INT2  LIS2DW12               P1.14/AIN7
+ *   (P1.05/AIN1 is labelled OUTPUT in the schematic's signal table with no
+ *    component attached -- purpose unknown, left alone.)
+ *
+ * BOTH LEDs ARE ACTIVE HIGH: each net goes through a 1 k resistor into the
+ * LED anode, cathode to GND. The K7's part is common-anode, i.e. the opposite,
+ * which is why the K7-derived guess could never have worked.
+ *
+ * THE UART IS UART30, NOT UART20. P0.00/P0.01 are in the nRF54L15 low-power
+ * domain, which only the "30" peripheral instances can reach. A uart20 on
+ * these pins would build and then do nothing.
+ */
+
+&pinctrl {
+	/omit-if-no-ref/ pwm20_default: pwm20_default {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 1, 4)>,
+				<NRF_PSEL(PWM_OUT1, 2, 3)>;
+		};
+	};
+
+	/omit-if-no-ref/ pwm20_sleep: pwm20_sleep {
+		group1 {
+			psels = <NRF_PSEL(PWM_OUT0, 1, 4)>,
+				<NRF_PSEL(PWM_OUT1, 2, 3)>;
+			low-power-enable;
+		};
+	};
+
+	/omit-if-no-ref/ uart30_default: uart30_default {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 1)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 0, 0)>;
+			bias-pull-up;
+		};
+	};
+
+	/omit-if-no-ref/ uart30_sleep: uart30_sleep {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 1)>,
+				<NRF_PSEL(UART_RX, 0, 0)>;
+			low-power-enable;
+		};
+	};
+
+	/omit-if-no-ref/ i2c21_default: i2c21_default {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 1, 6)>,
+				<NRF_PSEL(TWIM_SCL, 1, 8)>;
+			bias-pull-up;
+		};
+	};
+
+	/omit-if-no-ref/ i2c21_sleep: i2c21_sleep {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 1, 6)>,
+				<NRF_PSEL(TWIM_SCL, 1, 8)>;
+			low-power-enable;
+		};
+	};
+};

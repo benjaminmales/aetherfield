@@ -1,25 +1,33 @@
 /**
- * Password gate for the Aetherfield wiki.
+ * Login gate for the Aetherfield wiki: one login per client.
  *
  * Vercel Routing Middleware (all plans, any framework) runs before every
  * request to this project. Visitors without a valid cookie get a branded
- * login page; the right password sets a 30-day cookie and sends them on.
- *
- * Why not Vercel's built-in Password Protection: it's a paid add-on per
- * project, and it doesn't sit well behind aetherfield.ai/wiki, where this
- * project is reached through a rewrite from another domain. This gate works
- * the same on the vercel.app URL and on aetherfield.ai/wiki.
+ * login page; a correct username + password sets a 30-day cookie.
  *
  * Environment (Vercel → Project → Settings → Environment Variables):
- *   WIKI_PASSWORD   the shared password. Unset = the wiki refuses to serve,
- *                   so a misconfigured deploy fails closed, not open.
+ *
+ *   WIKI_USERS      one login per client, "name:password", separated by
+ *                   commas or new lines:
+ *                       acme:blue-kettle-41, pixelworks:quiet-harbour-7
+ *                   Names: letters, digits, - and _ (not case-sensitive).
+ *                   Passwords: anything except a comma or a new line.
+ *   WIKI_PASSWORD   optional fallback: a single shared password with no
+ *                   username. Leave unset once WIKI_USERS is in use.
  *   WIKI_BASE_URL   path prefix, default "/wiki/". Must match the build.
  *
- * Changing WIKI_PASSWORD signs everyone out: the cookie is a hash of it.
+ * Neither set = the wiki refuses to serve, so a misconfigured deploy fails
+ * closed, not open. Environment changes take effect on the next deploy.
  *
- * This is a shared-password gate for client documentation, not user
- * accounts. Anyone with the password can read everything; nothing here
- * is per-person.
+ * Managing access:
+ *   add a client      add a line to WIKI_USERS, redeploy
+ *   remove a client   delete their line, redeploy: their cookie stops
+ *                     working at once, nobody else is affected
+ *   change a password edit their line: only that client is signed out
+ *
+ * Each sign-in is written to the project's logs ("wiki login: acme"), which
+ * is the record of who has been in. This is a login per client, not per
+ * person: people at one client share it.
  */
 import { next } from "@vercel/functions";
 
@@ -36,8 +44,24 @@ function base() {
   return b === "" ? "" : b; // "" when served from a domain root
 }
 
-async function token(password) {
-  const data = new TextEncoder().encode(`aura-wiki:v1:${password}`);
+/** "name:pw, name:pw" -> Map(name -> pw). Bad entries are skipped. */
+function parseUsers(raw) {
+  const users = new Map();
+  for (const entry of String(raw || "").split(/[,\n]/)) {
+    const line = entry.trim();
+    const i = line.indexOf(":");
+    if (i < 1) continue;
+    const name = line.slice(0, i).trim().toLowerCase();
+    const pw = line.slice(i + 1).trim();
+    if (/^[a-z0-9_-]{1,32}$/.test(name) && pw) users.set(name, pw);
+  }
+  return users;
+}
+
+/** Cookie proof for a login. Tied to both name and password, so changing
+ *  or removing either makes existing cookies worthless. */
+async function token(name, password) {
+  const data = new TextEncoder().encode(`aura-wiki:v2:${name}:${password}`);
   const hash = await crypto.subtle.digest("SHA-256", data);
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -68,7 +92,7 @@ function safeNext(value, b) {
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-function loginPage({ action, nextPath, error, status = 401 }) {
+function loginPage({ action, nextPath, error, status = 401, withUser = true, user = "" }) {
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Aetherfield Wiki</title><meta name="robots" content="noindex">
@@ -95,8 +119,12 @@ function loginPage({ action, nextPath, error, status = 401 }) {
     <svg viewBox="0 0 1275.6 850.4" aria-hidden="true"><path d="M854.4,0c2.2,87.8,27.4,172.2,77.9,244.1,70.5,100.2,182.9,165.4,305.8,177.5,8.5.8,21.4,2.2,37.5,2.4v426.4c-57.4-2.3-113.6-6.4-169.9-17.6C753.7,763.2,478.3,465.7,433.6,111.7l-7.6-70.7v807H0V0h854.4Z" fill="#FF6B1A"/></svg>
     <b>AETHERFIELD</b><span>Wiki</span>
   </div>
-  <label for="p">Password</label>
-  <input id="p" name="password" type="password" autocomplete="current-password" autofocus required>
+  ${withUser ? `<label for="u">Username</label>
+  <input id="u" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(user)}" autofocus required>
+  <label for="p" style="margin-top:14px">Password</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>`
+  : `<label for="p">Password</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" autofocus required>`}
   <input type="hidden" name="next" value="${esc(nextPath)}">
   <button type="submit">Open the wiki</button>
   ${error ? `<div class="err">${esc(error)}</div>` : ""}
@@ -108,37 +136,75 @@ function loginPage({ action, nextPath, error, status = 401 }) {
   });
 }
 
+const SHARED = "_shared"; // cookie name part for WIKI_PASSWORD mode
+
+/** Is this cookie ("name.proof") valid for the current configuration? */
+async function cookieOk(value, users, shared) {
+  if (typeof value !== "string") return false;
+  const i = value.indexOf(".");
+  if (i < 1) return false;
+  const name = value.slice(0, i);
+  const proof = value.slice(i + 1);
+  const pw = name === SHARED ? shared : users.get(name);
+  if (!pw) return false;
+  return same(proof, await token(name, pw));
+}
+
 export default async function middleware(req) {
-  const password = process.env.WIKI_PASSWORD;
-  if (!password) {
-    return new Response("Wiki is not configured: set WIKI_PASSWORD.", { status: 503, headers: { "cache-control": "no-store" } });
+  const users = parseUsers(process.env.WIKI_USERS);
+  const shared = users.size ? "" : process.env.WIKI_PASSWORD || "";
+  if (!users.size && !shared) {
+    return new Response("Wiki is not configured: set WIKI_USERS.", { status: 503, headers: { "cache-control": "no-store" } });
   }
 
   const url = new URL(req.url);
   const b = base();
   const loginPath = `${b}/_login`;
-  const good = await token(password);
+  const withUser = users.size > 0;
+  const cookiePath = b || "/";
+
+  if (url.pathname === `${b}/_logout`) {
+    return new Response(null, {
+      status: 303,
+      headers: {
+        location: `${b}/`,
+        "set-cookie": `${COOKIE}=; Path=${cookiePath}; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
+        "cache-control": "no-store",
+      },
+    });
+  }
 
   if (url.pathname === loginPath && req.method === "POST") {
     let form;
     try { form = await req.formData(); } catch { form = new FormData(); }
     const dest = safeNext(form.get("next"), b);
-    if (same(await token(String(form.get("password") || "")), good)) {
+    const name = withUser ? String(form.get("username") || "").trim().toLowerCase() : SHARED;
+    const given = String(form.get("password") || "");
+    const real = withUser ? users.get(name) : shared;
+    // Always hash and compare, even for an unknown name, so a wrong username
+    // and a wrong password are indistinguishable from outside.
+    const ok = same(await token(name, given), await token(name, real || "\u0000no-such-user"));
+    if (ok && real) {
+      console.log(`wiki login: ${withUser ? name : "(shared password)"}`);
       return new Response(null, {
         status: 303,
         headers: {
           location: dest,
-          "set-cookie": `${COOKIE}=${good}; Path=${b || "/"}; Max-Age=${MAX_AGE}; HttpOnly; Secure; SameSite=Lax`,
+          "set-cookie": `${COOKIE}=${name}.${await token(name, real)}; Path=${cookiePath}; Max-Age=${MAX_AGE}; HttpOnly; Secure; SameSite=Lax`,
           "cache-control": "no-store",
         },
       });
     }
-    return loginPage({ action: loginPath, nextPath: dest, error: "That password didn't work." });
+    console.log(`wiki login FAILED: ${withUser ? name || "(blank)" : "(shared password)"}`);
+    return loginPage({
+      action: loginPath, nextPath: dest, withUser, user: withUser ? name : "",
+      error: withUser ? "That username and password didn't match." : "That password didn't work.",
+    });
   }
 
-  if (same(readCookie(req, COOKIE), good)) {
+  if (await cookieOk(readCookie(req, COOKIE), users, shared)) {
     return next();
   }
 
-  return loginPage({ action: loginPath, nextPath: safeNext(url.pathname + url.search, b) });
+  return loginPage({ action: loginPath, nextPath: safeNext(url.pathname + url.search, b), withUser });
 }

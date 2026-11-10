@@ -33,7 +33,7 @@ Settings → Environment Variables:
 
 | Name | Value |
 |---|---|
-| `WIKI_PASSWORD` | the shared password you give clients |
+| `WIKI_USERS` | one login per client: `acme:their-password, pixelworks:another-password` |
 
 Deploy. `https://<project>.vercel.app/wiki/` should show the login page.
 
@@ -56,9 +56,23 @@ built without them (`trailingSlash: false` in `docusaurus.config.js`, plus
 `cleanUrls` in `vercel.json`). Switch either back and pages loop between the
 two sites.
 
-### Password
+### Client logins
 
 `middleware.js` is a Vercel Routing Middleware gate (free on every plan):
-branded login page, 30-day cookie, fails closed if `WIKI_PASSWORD` is unset.
-**Changing the password signs everyone out.** It's one shared password for
-client documentation, not per-person accounts.
+branded login page, 30-day cookie, fails closed if nothing is configured.
+
+`WIKI_USERS` holds one login per client, `name:password`, separated by commas
+or new lines. Names use letters, digits, `-` and `_`; passwords can be
+anything except a comma.
+
+| To | Do |
+|---|---|
+| Add a client | Add `name:password` to `WIKI_USERS`, then redeploy |
+| Remove a client | Delete their entry, redeploy. They're locked out at once; nobody else is affected |
+| Change a password | Edit their entry, redeploy. Only that client is signed out |
+| See who's been in | Project → Logs, search `wiki login` |
+| Sign out | `/wiki/_logout` |
+
+Environment variable changes only apply after a redeploy (Deployments → ⋯ →
+Redeploy). It's one login per client company, shared by their people, not
+per-person accounts.

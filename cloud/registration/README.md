@@ -11,7 +11,7 @@ to the demo-kit essentials and locked down.
 - A guest scans the QR on an Aura Tag → `/register?d=<id>` → enters name +
   mobile number. They get a welcome SMS.
 - **All data is hard-deleted 30 minutes after registration.** Lazily on every
-  API call, and by a Vercel cron every 30 min. No history, no soft delete.
+  API call, with a daily Vercel cron as a backstop. No history, no soft delete.
 - The Demo Server (on the client's laptop) polls `/api/registrations` to show
   names next to Tags, and posts `/api/action` to text a Tag's owner — e.g.
   from a behaviour rule ("when Tag 4C51 moves, text its owner").

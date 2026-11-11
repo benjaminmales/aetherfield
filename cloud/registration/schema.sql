@@ -2,7 +2,7 @@
 -- Run once in the Supabase SQL editor.
 --
 -- PRIVACY: rows are hard-deleted 30 minutes after registration (expires_at),
--- lazily on every API call and by the Vercel cron at /api/purge. There is no
+-- lazily on every API call, with a daily Vercel cron at /api/purge as a backstop. There is no
 -- history table and no soft delete — expired means gone.
 
 CREATE TABLE IF NOT EXISTS aura_registrations (

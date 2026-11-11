@@ -33,7 +33,7 @@ your own software through the Aura Server API.
 2. **[Network setup](/getting-started/network-setup)**: putting Aura Links on your network.
 3. **[REST API](/aura-server/rest-api)**: read the fleet and control it from your own software.
 
-Already running Aura Server on this laptop? <a href="http://localhost:3000" target="_blank" rel="noopener">**Open the console →**</a>
+Already running Aura Server on this laptop? <a href="/wiki/open-server">**Open the console →**</a>
 
 ## How the pieces fit
 

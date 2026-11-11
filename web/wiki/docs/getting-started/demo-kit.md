@@ -28,9 +28,12 @@ npm install
 npm start
 ```
 
-<a className="local-server-cta" href="http://localhost:3000" target="_blank" rel="noopener">Open Aura Server →</a>
+<a className="local-server-cta" href="/wiki/open-server">Open Aura Server →</a>
 
-That opens **http://localhost:3000**. You'll see the console with no Links yet. On
+That opens the console at **http://localhost:3000**. You'll see it with no Links yet.
+
+To have Aura Server start by itself every time you log in, run
+`npm run service:install` once instead of `npm start`. On
 macOS, allow `node` to accept incoming connections when asked. If you miss the
 prompt, the Links can't connect.
 

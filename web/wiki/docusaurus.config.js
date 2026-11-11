@@ -12,9 +12,6 @@ const config = {
   baseUrl: process.env.WIKI_BASE_URL || "/wiki/",
   onBrokenLinks: "throw",
   noIndex: true,            // private client docs: keep out of search engines
-  // No trailing slashes: pages build as page.html and are served as /wiki/page.
-  // aetherfield.ai is Next.js, which strips trailing slashes before forwarding
-  // /wiki/*; slash-style URLs would bounce between the two sites forever.
   trailingSlash: false,
   markdown: { hooks: { onBrokenMarkdownLinks: "throw" } },
   i18n: { defaultLocale: "en", locales: ["en"] },
@@ -57,9 +54,9 @@ const config = {
             ],
           },
           { to: "/aura-server/rest-api", label: "API", position: "left" },
-          // Aura Server runs on the client's own laptop. This opens its console
-          // there; it only works on the machine running the server.
-          { href: "http://localhost:3000", label: "Open Aura Server", position: "right", className: "local-server" },
+          // Aura Server runs on the client's own laptop. This page opens its
+          // console if it's running there, and explains how to start it if not.
+          { to: "/open-server", label: "Open Aura Server", position: "right", className: "local-server" },
           { href: "https://aetherfield.ai", label: "aetherfield.ai", position: "right" },
         ],
       },

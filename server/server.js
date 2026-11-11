@@ -189,7 +189,14 @@ const app = express();
 app.use(express.json({ limit: "64kb" }));
 app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
 
+// The wiki's "Open Aura Server" button probes this from aetherfield.ai to see
+// whether the server is running on this machine, so it must be readable
+// cross-origin (and from a public page to a local address).
+app.options("/health", (_req, res) => {
+  res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Private-Network": "true" }).sendStatus(204);
+});
 app.get("/health", (_req, res) => {
+  res.set({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Private-Network": "true" });
   res.json({
     ok: true,
     serverId: SERVER_ID,

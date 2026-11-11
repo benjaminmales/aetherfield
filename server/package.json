@@ -6,7 +6,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node lib/gateway-link.test.js && node lib/aura-v2.test.js && node lib/device-roster.test.js && node lib/webhooks.test.js && node lib/cloud.test.js && node lib/behaviours.test.js"
+    "test": "node lib/gateway-link.test.js && node lib/aura-v2.test.js && node lib/device-roster.test.js && node lib/webhooks.test.js && node lib/cloud.test.js && node lib/behaviours.test.js",
+    "service:install": "node service.js install",
+    "service:uninstall": "node service.js uninstall",
+    "service:status": "node service.js status"
   },
   "engines": {
     "node": ">=20"

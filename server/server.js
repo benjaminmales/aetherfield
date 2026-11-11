@@ -47,6 +47,8 @@ const LOCATE_S = 10;
 // The aura-registration deployment: names, phone numbers, Twilio. Leave it
 // empty and everything below still works minus messaging — see lib/cloud.js.
 const CLOUD_URL = process.env.CLOUD_URL || "";
+// Must match CLOUD_API_TOKEN on that deployment.
+const CLOUD_TOKEN = process.env.CLOUD_TOKEN || "";
 
 const startedAt = Date.now();
 // Devices beacon every 5 s (AURA_BEACON_DEFAULT_MS). Offline after four
@@ -54,7 +56,7 @@ const startedAt = Date.now();
 // device flap offline and back, which would also fire presence behaviours.
 const ONLINE_MS = Number(process.env.ONLINE_MS || 20_000);
 const roster = createRoster({ onlineMs: ONLINE_MS });
-const cloud = createCloud({ baseUrl: CLOUD_URL });
+const cloud = createCloud({ baseUrl: CLOUD_URL, apiToken: CLOUD_TOKEN });
 const names = createNames(path.join(DATA_DIR, "names.json"));
 const site = createSiteSettings(path.join(DATA_DIR, "settings.json"));
 
@@ -72,6 +74,7 @@ const behaviours = createBehaviours({
   parseColor,
   anims: v2.ANIM_NAMES,
   device: liveDevice,
+  cloud,
   log,
 });
 
@@ -417,7 +420,7 @@ async function main() {
   }, 30_000).unref();
 
   if (cloud.configured()) {
-    log("cloud", { url: CLOUD_URL });
+    log("cloud", { url: CLOUD_URL, token: Boolean(CLOUD_TOKEN) });
     cloud.refresh(true);
   } else {
     log("cloud", { url: null, note: "CLOUD_URL unset - messaging disabled" });

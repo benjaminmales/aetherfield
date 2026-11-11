@@ -19,6 +19,7 @@ export default {
       "aura-server/rest-api",
       "aura-server/live-feed",
       "aura-server/behaviours",
+      "aura-server/registration",
       "aura-server/webhooks",
     ]},
     { type: "category", label: "How it works", items: [

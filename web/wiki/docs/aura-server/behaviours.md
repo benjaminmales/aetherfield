@@ -34,6 +34,7 @@ A behaviour can do one or more of:
 |---|---|
 | `light` | `target`: `device` (the one that triggered it), `zone` (its zone's Link) or `all`; `color`, `animation`, `brightness`; optional `durationS`, after which the target goes dark again |
 | `webhook` | `url`: Demo Server POSTs `{ behaviour, name, event }` to it |
+| `message` | `text`: send an SMS to whoever [registered](/aura-server/registration) the device that triggered the rule. `{name}`, `{device}` and `{zone}` are filled in |
 
 `zone` lights every device the zone's Link reaches. Radio doesn't stop at a
 wall, so devices near the boundary of a neighbouring zone may see it too.

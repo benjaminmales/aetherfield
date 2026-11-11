@@ -132,4 +132,30 @@ test("cloud", async (t) => {
     });
     assert.strictEqual(cloud.stats().sendFailures, 1);
   });
+
+  await t.test("sends the bearer token on every call when configured", async () => {
+    const seen = [];
+    const fetchImpl = async (url, init) => {
+      seen.push([url, (init.headers || {}).authorization || null]);
+      return { ok: true, json: async () => [] };
+    };
+    const c = createCloud({ baseUrl: "https://x.test", apiToken: "s3cret", fetchImpl });
+    await c.refresh(true);
+    await c.send("0x4C51", "hi").catch(() => {});
+    assert.ok(seen.length >= 2);
+    for (const [, auth] of seen) assert.equal(auth, "Bearer s3cret");
+    assert.equal(c.stats().token, true);
+  });
+
+  await t.test("sends no auth header when no token is set", async () => {
+    const seen = [];
+    const fetchImpl = async (url, init) => {
+      seen.push((init.headers || {}).authorization || null);
+      return { ok: true, json: async () => [] };
+    };
+    const c = createCloud({ baseUrl: "https://x.test", fetchImpl });
+    await c.refresh(true);
+    assert.equal(seen[0], null);
+    assert.equal(c.stats().token, false);
+  });
 });

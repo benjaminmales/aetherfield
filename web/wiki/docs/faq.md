@@ -34,5 +34,14 @@ Yes: [REST API](/aura-server/rest-api), [live feed](/aura-server/live-feed),
 
 **What data does a device send?**
 Its id, capabilities, battery level and status flags (e.g. moving), plus motion
-events. No names, no personal data: those live only where your registration
-system puts them.
+events. No names, no personal data. If a guest [registers](/aura-server/registration)
+their Tag, the name and number live only in the hosted registration service and
+are deleted automatically after 30 minutes — they never touch the device, the
+radio or the Demo Server's disk.
+
+**Is the radio link encrypted?**
+Not in the demo kit. Commands and beacons are sent in the clear, so treat it
+like any lab equipment: fine for demos and integration work, not for anything
+sensitive. Over-the-air encryption (from the Aura Link outward) is on the
+roadmap for release hardware — it's a hardware-lifetime decision, so we're
+building it in from the gateway rather than bolting it on.

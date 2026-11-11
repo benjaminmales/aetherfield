@@ -59,6 +59,8 @@ function deviceId(uuid) {
  */
 function createCloud(opts = {}) {
   const baseUrl = (opts.baseUrl || "").trim().replace(/\/+$/, "");
+  // Shared secret; the app's machine endpoints are fail-closed without it.
+  const apiToken = (opts.apiToken || "").trim();
   const doFetch = opts.fetchImpl ?? globalThis.fetch;
   const now = opts.now ?? (() => Date.now());
   const cacheMs = Number.isFinite(opts.cacheMs) ? opts.cacheMs : DEFAULT_CACHE_MS;
@@ -85,8 +87,13 @@ function createCloud(opts = {}) {
   }
 
   async function json(path, init) {
+    const headers = {
+      ...(init && init.headers),
+      ...(apiToken ? { authorization: `Bearer ${apiToken}` } : {}),
+    };
     const res = await doFetch(url(path), {
       ...init,
+      headers,
       signal: AbortSignal.timeout(timeoutMs),
     });
     const body = await res.json().catch(() => ({}));
@@ -199,6 +206,7 @@ function createCloud(opts = {}) {
     return {
       configured: configured(),
       baseUrl: baseUrl || null,
+      token: Boolean(apiToken),
       cached: cache.size,
       ageMs: fetchedAt ? now() - fetchedAt : null,
       ...state,

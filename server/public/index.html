@@ -171,6 +171,7 @@
       <div><label>Animation</label><select id="bAnim"></select></div>
       <div><label>For (s, blank = stay)</label><input id="bDur" type="number" min="1" max="3600" placeholder="5" /></div>
       <div style="grid-column:span 2"><label>And call URL (optional)</label><input id="bUrl" placeholder="http://192.168.1.20:8080/aura" /></div>
+      <div style="grid-column:span 2"><label>And text the owner (optional, registered Tags only)</label><input id="bMsg" placeholder="Hi {name} — your Tag ({device}) just moved" maxlength="320" /></div>
       <div><label>&nbsp;</label><button class="go" id="bAdd" style="width:100%">Add behaviour</button></div>
     </div>
   </div>
@@ -345,6 +346,7 @@ async function loadRules() {
     const w = b.when, where = [w.product && esc(w.product), w.zone && "in " + zn(w.zone)].filter(Boolean).join(" ");
     const then = b.then.map((a) => a.do === "light"
       ? `${TGT[a.target]} <span class="dot" style="background:${esc(a.color)}"></span>${esc(a.animation)}${a.durationS ? " for " + a.durationS + "s" : ""}`
+      : a.do === "message" ? `text the owner “${esc(a.text)}”`
       : `call <code>${esc(a.url)}</code>`).join(" + ");
     return `<div class="rule ${b.enabled ? "" : "off"}"><input type="checkbox" data-toggle="${esc(b.id)}" ${b.enabled ? "checked" : ""} />
       <div style="flex:1"><b>${esc(b.name)}</b><br /><span class="when">When ${TRIG[w.trigger]}${where ? " (" + where + ")" : ""}</span> → ${then}</div>
@@ -358,10 +360,11 @@ $("bAdd").onclick = async () => {
   if ($("bTarget").value) then.push({ do: "light", target: $("bTarget").value, color: $("bColor").value, animation: $("bAnim").value,
                                       durationS: $("bDur").value ? Number($("bDur").value) : null });
   if ($("bUrl").value.trim()) then.push({ do: "webhook", url: $("bUrl").value.trim() });
+  if ($("bMsg").value.trim()) then.push({ do: "message", text: $("bMsg").value.trim() });
   const when = { trigger: $("bTrig").value, zone: $("bZone").value || null, product: $("bProd").value || null };
   try {
     await api("POST", "/api/v1/behaviours", { name: $("bName").value || $("bTrig").selectedOptions[0].text, when, then });
-    $("bName").value = ""; $("bUrl").value = ""; toast("Behaviour added"); loadRules();
+    $("bName").value = ""; $("bUrl").value = ""; $("bMsg").value = ""; toast("Behaviour added"); loadRules();
   } catch (e) { toast(e.message); }
 };
 document.addEventListener("change", async (e) => {

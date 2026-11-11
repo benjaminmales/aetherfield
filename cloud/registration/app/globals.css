@@ -1,0 +1,205 @@
+:root {
+  /* Figma: Acts of Betrayal palette */
+  --bg-core: #6d1732;
+  --bg-mid: #4f1025;
+  --bg-edge: #310817;
+  --gold: #f3cd59;
+  --gold-border: #ed9528;
+  --btn-text: #4e1024;
+  --input-bg: rgba(217, 217, 217, 0.1);
+  --error: #ff9d94;
+}
+
+/* Aetherfield: black, white, orange — the same palette as the Pixel event
+   server console, so a guest's phone and the operator's screen look like one
+   product. Only the tokens change; every rule below is shared. */
+:root[data-event="aetherfield"] {
+  --bg-core: #141414;
+  --bg-mid: #0f0f0f;
+  --bg-edge: #0a0a0a;
+  --gold: #f2f2f2;
+  --gold-border: #ff6b1a;
+  --btn-text: #0a0a0a;
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --error: #f87171;
+}
+
+:root[data-event="aetherfield"] h1,
+:root[data-event="aetherfield"] .serif {
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+/* The gold gradient and the serif are the Traitors identity, not shared
+   chrome, so they are overridden rather than tokenised - a flat orange button
+   in Inter is the Aetherfield equivalent. */
+:root[data-event="aetherfield"] button.primary,
+:root[data-event="aetherfield"] .primary {
+  background: var(--gold-border);
+  box-shadow: none;
+  color: var(--btn-text);
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+}
+
+:root[data-event="aetherfield"] input::placeholder {
+  color: rgba(242, 242, 242, 0.3);
+}
+:root[data-event="aetherfield"] input:focus {
+  outline: 1px solid var(--gold-border);
+  border-color: var(--gold-border);
+}
+
+/* The Aetherfield mark is a square-ish glyph, not a full-width lockup. */
+:root[data-event="aetherfield"] .logo {
+  max-width: 96px;
+  margin-bottom: 1.75rem;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  color: var(--gold);
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: var(--bg-edge);
+}
+
+body {
+  background: radial-gradient(
+    ellipse 105% 55% at 50% 50%,
+    var(--bg-core) 0%,
+    var(--bg-mid) 50%,
+    var(--bg-edge) 100%
+  );
+  background-attachment: fixed;
+}
+
+h1, .serif {
+  font-family: "Cormorant Garamond", serif;
+}
+
+main.card {
+  max-width: 402px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 3rem;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  display: block;
+  width: 100%;
+  max-width: 411px;
+  margin: 0 auto 2.5rem;
+}
+
+h1 {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 1.5rem 0 2rem;
+  color: var(--gold);
+}
+
+p.lede {
+  text-align: center;
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.35;
+  margin: 1.5rem 0 0;
+  color: var(--gold);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+/* Figma places the label beneath its field */
+label { display: flex; flex-direction: column-reverse; gap: 0.5rem; }
+label span {
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--gold);
+}
+
+input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 5px;
+  border: 1px solid var(--gold-border);
+  background: var(--input-bg);
+  color: var(--gold);
+  font-size: 16px;
+  font-family: inherit;
+}
+input::placeholder { color: rgba(243, 205, 89, 0.35); }
+input:focus { outline: 1px solid var(--gold); border-color: var(--gold); }
+
+button.primary {
+  display: block;
+  margin: 1.6rem auto 0;
+  min-width: 194px;
+  padding: 0.55rem 2rem;
+  border-radius: 5px;
+  border: none;
+  background: linear-gradient(180deg, #f9df82 0%, var(--gold) 45%, #dfa93a 100%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  color: var(--btn-text);
+  font-family: "Cormorant Garamond", serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+button.primary:disabled { opacity: 0.55; cursor: wait; }
+
+.disclaimer {
+  margin: 2.2rem auto 0;
+  max-width: 296px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.45;
+  color: var(--gold);
+}
+
+.msg { font-size: 0.95rem; line-height: 1.45; text-align: center; }
+.msg.error { color: var(--error); }
+.msg.success { color: var(--gold); }
+
+.band-chip {
+  display: inline-block;
+  font-family: monospace;
+  border: 1px solid var(--gold-border);
+  border-radius: 5px;
+  padding: 0.1rem 0.5rem;
+  color: var(--gold);
+  font-size: 0.85em;
+}
+
+a.wa-link {
+  display: block;
+  text-align: center;
+  margin: 2rem auto 0;
+  min-width: 194px;
+  max-width: 280px;
+  padding: 0.7rem 1.5rem;
+  border-radius: 5px;
+  border: 1px solid var(--gold-border);
+  color: var(--gold);
+  text-decoration: none;
+  font-weight: 500;
+}

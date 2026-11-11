@@ -13,7 +13,8 @@
  *     "then": [
  *       { "do": "light", "target": "device", "color": "#00ff66",
  *         "animation": "steady", "brightness": 255, "durationS": 5 },
- *       { "do": "webhook", "url": "http://10.0.0.20:8080/aura" }
+ *       { "do": "webhook", "url": "http://10.0.0.20:8080/aura" },
+ *       { "do": "message", "text": "Hi {name}, Tag {device} just moved" }
  *     ],
  *     "cooldownS": 1
  *   }
@@ -76,7 +77,15 @@ function validate(b, { anims, parseColor }) {
       if (!/^https?:$/.test(u.protocol)) throw new Error(`then[${i}].url must be http(s)`);
       return { do: "webhook", url: u.toString() };
     }
-    throw new Error(`then[${i}].do must be "light" or "webhook"`);
+    if (a.do === "message") {
+      // Sent via the cloud tier (lib/cloud.js) to whoever registered the
+      // device the event came from. {name} {device} {zone} are filled in.
+      const text = String(a.text ?? "").trim();
+      if (!text) throw new Error(`then[${i}].text is required`);
+      if (text.length > 320) throw new Error(`then[${i}].text must be at most 320 characters`);
+      return { do: "message", text };
+    }
+    throw new Error(`then[${i}].do must be "light", "webhook" or "message"`);
   });
   const cooldownS = b.cooldownS == null ? 1 : Number(b.cooldownS);
   if (!(cooldownS >= 0 && cooldownS <= 3600)) throw new Error("cooldownS must be 0-3600");
@@ -195,6 +204,27 @@ function createBehaviours(o) {
       .catch((err) => { st.lastError = err?.name === "TimeoutError" ? "timeout" : String(err?.message || err); });
   }
 
+  /**
+   * Text whoever registered the device that caused the event. Fire-and-forget
+   * like webhook(): a Twilio round-trip must never sit in the radio path.
+   * Needs CLOUD_URL configured and the device registered; both failures land
+   * in the rule's stats where the console shows them.
+   */
+  function message(rule, a, e) {
+    const st = stats.get(rule.id);
+    if (!o.cloud || !o.cloud.configured()) { st.lastError = "CLOUD_URL is not set"; return; }
+    if (!e.id) { st.lastError = "event has no device"; return; }
+    const reg = o.cloud.lookup(e.id);
+    const zone = (e.zone && (e.zone.name || e.zone.id)) || (e.to && (e.to.name || e.to.id)) || "";
+    const text = a.text
+      .replaceAll("{name}", (reg && reg.name) || "there")
+      .replaceAll("{device}", String(e.id))
+      .replaceAll("{zone}", zone);
+    Promise.resolve()
+      .then(() => o.cloud.send(e.id, text))
+      .catch((err) => { st.lastError = String(err?.message || err); });
+  }
+
   /** Run every enabled rule that matches this fleet event. Returns ids fired. */
   function handle(e) {
     const fired = [];
@@ -214,6 +244,7 @@ function createBehaviours(o) {
         try {
           if (a.do === "light") light(a, ev);
           else if (a.do === "webhook") webhook(rule, a, ev);
+          else if (a.do === "message") message(rule, a, ev);
         } catch (err) {
           st.lastError = err.message;
         }

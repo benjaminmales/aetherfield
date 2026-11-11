@@ -4,7 +4,7 @@ title: REST API
 
 # REST API
 
-Plain JSON over HTTP, served by Aura Server at `http://<server>:3000/api/v1`.
+Plain JSON over HTTP, served by Demo Server at `http://<server>:3000/api/v1`.
 Use it to read the fleet from your own software and to control the lights.
 
 `GET /api/v1` returns the API index, the animation and mode names, and

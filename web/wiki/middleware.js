@@ -128,7 +128,7 @@ function loginPage({ action, nextPath, error, status = 401, withUser = true, use
   <input type="hidden" name="next" value="${esc(nextPath)}">
   <button type="submit">Open the wiki</button>
   ${error ? `<div class="err">${esc(error)}</div>` : ""}
-  <p>Client documentation for Aura and Aura Server. Ask your Aetherfield contact for access.</p>
+  <p>Client documentation for Aura and the Aetherfield Demo Server. Ask your Aetherfield contact for access.</p>
 </form></body></html>`;
   return new Response(html, {
     status,

@@ -3,7 +3,7 @@ import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
 
 /*
- * "Open Aura Server": checks whether Aura Server is running on THIS computer
+ * "Open Demo Server": checks whether Demo Server is running on THIS computer
  * and opens its console if so. If not, explains how to start it.
  *
  * A web page cannot start a program, so this can only detect and guide. The
@@ -39,26 +39,26 @@ export default function OpenServer() {
   useEffect(() => { check(); }, []);
 
   return (
-    <Layout title="Open Aura Server">
+    <Layout title="Open Demo Server">
       <main className="container margin-vert--xl" style={{ maxWidth: 720 }}>
-        {state === "checking" && (<><h1>Looking for Aura Server…</h1><p>Checking this computer on port 3000.</p></>)}
+        {state === "checking" && (<><h1>Looking for Demo Server…</h1><p>Checking this computer on port 3000.</p></>)}
 
-        {state === "up" && (<><h1>Opening Aura Server…</h1><p>If nothing happens, <a href={CONSOLE}>open the console</a>.</p></>)}
+        {state === "up" && (<><h1>Opening Demo Server…</h1><p>If nothing happens, <a href={CONSOLE}>open the console</a>.</p></>)}
 
         {state === "down" && (
           <>
-            <h1>Aura Server isn't running on this computer</h1>
+            <h1>Demo Server isn't running on this computer</h1>
             <p>
-              The console lives on the computer that runs Aura Server. Start it there, then try again.
+              The console lives on the computer that runs Demo Server. Start it there, then try again.
             </p>
 
             <h2>Start it now</h2>
-            <p>In a terminal, in the <code>aura-server</code> folder:</p>
+            <p>In a terminal, in the <code>aetherfield-demo-server</code> folder:</p>
             <pre><code>npm start</code></pre>
 
             <h2>Or have it start by itself</h2>
             <p>
-              Run this once. Aura Server then starts whenever you log in to this computer, and restarts if it
+              Run this once. Demo Server then starts whenever you log in to this computer, and restarts if it
               stops. Works on macOS, Windows and Linux.
             </p>
             <pre><code>npm run service:install</code></pre>

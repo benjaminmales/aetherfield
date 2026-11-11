@@ -15,7 +15,7 @@ Every Aura device does three things:
 ## The path
 
 ```
-Aura device ──802.15.4 radio──▶ Aura Link ──Ethernet (TCP)──▶ Aura Server ──▶ your software
+Aura device ──802.15.4 radio──▶ Aura Link ──Ethernet (TCP)──▶ Demo Server ──▶ your software
             ◀── commands ───────          ◀── commands ──────
 ```
 
@@ -26,7 +26,7 @@ Aura device ──802.15.4 radio──▶ Aura Link ──Ethernet (TCP)──�
 
 ## Local first
 
-Devices, Links and Aura Server all sit on the venue's own network. **Nothing
+Devices, Links and Demo Server all sit on the venue's own network. **Nothing
 in the live path needs the internet.** A cloud service can mirror the server
 for remote dashboards and messaging, but it is never between the lighting
 desk and the crowd.

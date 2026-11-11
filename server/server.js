@@ -1,5 +1,5 @@
 /**
- * Aura Server — the on-site show brain.
+ * Demo Server — the on-site show brain.
  *
  * Sits between the gateways (wired, local) and the cloud (internet).
  *   gateways --TCP :9000--> [ this ] --HTTPS--> cloud
@@ -189,7 +189,7 @@ const app = express();
 app.use(express.json({ limit: "64kb" }));
 app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
 
-// The wiki's "Open Aura Server" button probes this from aetherfield.ai to see
+// The wiki's "Open Demo Server" button probes this from aetherfield.ai to see
 // whether the server is running on this machine, so it must be readable
 // cross-origin (and from a public page to a local address).
 app.options("/health", (_req, res) => {

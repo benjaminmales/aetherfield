@@ -5,7 +5,7 @@ title: FAQ
 # FAQ
 
 **Does it need the internet?**
-No. Devices, Aura Links and Aura Server all run on the venue's local network.
+No. Devices, Aura Links and Demo Server all run on the venue's local network.
 
 **Is it Bluetooth?**
 No. Aura uses IEEE 802.15.4, a low-power radio built for large numbers of

@@ -2,7 +2,7 @@
  * behaviours.js — "when this happens, do that", configured without code.
  *
  * A behaviour is a rule the client sets up in the console (or over
- * /api/v1/behaviours) that Aura Server runs locally, on the venue LAN, with
+ * /api/v1/behaviours) that Demo Server runs locally, on the venue LAN, with
  * the internet unplugged:
  *
  *   {

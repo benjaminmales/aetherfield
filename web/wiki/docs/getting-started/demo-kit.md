@@ -17,28 +17,37 @@ own software.
 | Antenna | 1 per Link | **Must be fitted before power-on.** See [Aura Link](/products/aura-link#fit-the-antenna) |
 | USB-C cable | 1 | For setting each Link's network address |
 
-You provide: a laptop (macOS, Windows or Linux) with [Node.js 20+](https://nodejs.org),
+You provide: a laptop (macOS, Windows or Linux) with [Node.js 20 or later](https://nodejs.org) installed,
 an Ethernet switch or router, and an Ethernet cable per Link.
 
-## 1. Start Aura Server on your laptop
+## 1. Start the Demo Server on your laptop
 
-```bash
-cd aura-server
-npm install
-npm start
-```
+**[Download the Aetherfield Demo Server (zip, 1.2 MB)](pathname:///wiki/downloads/aetherfield-demo-server-1.0.0.zip)** and unzip it.
+Apart from Node.js, everything it needs is inside.
 
-<a className="local-server-cta" href="/wiki/open-server">Open Aura Server →</a>
+- **macOS:** double-click `Start Demo Server.command`. The first time, right-click it and choose **Open**, because it came from a download.
+- **Windows:** double-click `Start Demo Server.bat`.
+- **Or in a terminal,** in the unzipped folder: `npm start`
+
+<a className="local-server-cta" href="/wiki/open-server">Open Demo Server →</a>
 
 That opens the console at **http://localhost:3000**. You'll see it with no Links yet.
 
-To have Aura Server start by itself every time you log in, run
-`npm run service:install` once instead of `npm start`. On
-macOS, allow `node` to accept incoming connections when asked. If you miss the
-prompt, the Links can't connect.
+The first time, your computer may ask whether `node` can accept incoming
+connections. Say yes, or the Links can't connect.
+
+To have the Demo Server start by itself every time you log in, run
+`npm run service:install` once, in a terminal in that folder.
 
 Note your laptop's IP address on the network the Links will join (e.g.
 `192.168.1.50`). On macOS: **System Settings → Network → (your adapter) → Details**.
+
+### No hardware yet?
+
+With the server running, open a terminal in the same folder and run
+`npm run simulate`. Eight simulated Aura Tags appear in the console, moving
+and reporting battery, so you can try the controls, behaviours and API before
+the kit arrives.
 
 ## 2. Point each Link at your laptop
 
@@ -66,7 +75,7 @@ its LED:
 |---|---|
 | Solid blue | Starting up |
 | Red pulse | No Ethernet. Check the cable |
-| Amber blink | On the network but can't reach Aura Server. Check the server address and the firewall |
+| Amber blink | On the network but can't reach Demo Server. Check the server address and the firewall |
 | **Solid green** | **Connected** |
 
 The Link appears in the console under **Zones** within a few seconds.

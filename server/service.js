@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Aura Server as a background service: starts when you log in, restarts if
+ * Demo Server as a background service: starts when you log in, restarts if
  * it stops. After `npm run service:install` the console is always at
  * http://localhost:3000 and nobody has to remember to start anything.
  *
@@ -144,14 +144,14 @@ const mac = {
 
 /* -------------------------------------------------------------- Windows -- */
 
-const STARTUP = path.join(process.env.APPDATA || "", "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "Aura Server.vbs");
+const STARTUP = path.join(process.env.APPDATA || "", "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "Demo Server.vbs");
 
 const win = {
   install() {
     // A .vbs launcher is the standard way to start a console program with no
     // window. Doubled quotes are VBScript's escape for a quote in a string.
     const q = (s) => `""${s}""`;
-    const vbs = `' Aura Server: starts at login. Remove with: npm run service:uninstall\r\n` +
+    const vbs = `' Demo Server: starts at login. Remove with: npm run service:uninstall\r\n` +
       `Set sh = CreateObject("WScript.Shell")\r\n` +
       `sh.CurrentDirectory = "${DIR}"\r\n` +
       `sh.Run "${q(NODE)} ${q(SELF)} run", 0, False\r\n`;
@@ -175,7 +175,7 @@ const linux = {
   install() {
     fs.mkdirSync(path.dirname(UNIT), { recursive: true });
     fs.writeFileSync(UNIT, `[Unit]
-Description=Aura Server
+Description=Demo Server
 After=network.target
 
 [Service]
@@ -219,16 +219,16 @@ async function main() {
     }
     fs.mkdirSync(DATA, { recursive: true });
     platform.install();
-    process.stdout.write("Starting Aura Server");
+    process.stdout.write("Starting Demo Server");
     const ok = await waitHealthy();
-    console.log(ok ? `\n\nAura Server is running and will start whenever you log in.\n  Console:  http://localhost:${PORT}\n  Log:      ${LOG}\n  Remove:   npm run service:uninstall`
+    console.log(ok ? `\n\nDemo Server is running and will start whenever you log in.\n  Console:  http://localhost:${PORT}\n  Log:      ${LOG}\n  Remove:   npm run service:uninstall`
                    : `\n\nInstalled, but the server didn't answer on port ${PORT} yet.\nCheck the log: ${LOG}\n(If another copy is already running with \`npm start\`, stop it first.)`);
     process.exit(ok ? 0 : 1);
   }
 
   if (cmd === "uninstall") {
     platform.uninstall();
-    console.log("Aura Server background service removed. Your names, behaviours and settings in data/ are untouched.");
+    console.log("Demo Server background service removed. Your names, behaviours and settings in data/ are untouched.");
     return;
   }
 
@@ -236,7 +236,7 @@ async function main() {
     const up = await healthy();
     const installed = fs.existsSync(platform.where);
     console.log(`Background service: ${installed ? "installed" : "not installed"}`);
-    console.log(`Aura Server:        ${up ? `running at http://localhost:${PORT}` : "not running"}`);
+    console.log(`Demo Server:        ${up ? `running at http://localhost:${PORT}` : "not running"}`);
     process.exit(up ? 0 : 1);
   }
 

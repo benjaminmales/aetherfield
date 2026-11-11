@@ -14,7 +14,7 @@ export default {
       "products/aura-link",
       "products/aura-server",
     ]},
-    { type: "category", label: "Aura Server", collapsed: false, items: [
+    { type: "category", label: "Demo Server", collapsed: false, items: [
       "aura-server/console",
       "aura-server/rest-api",
       "aura-server/live-feed",

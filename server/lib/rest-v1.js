@@ -4,7 +4,7 @@
  * Built for one job: let a client's own software (a show controller, a CMS,
  * TouchDesigner, a ticketing system) read the fleet and drive it, without
  * knowing anything about radio. Everything here is plain JSON over HTTP on the
- * venue LAN, served by Aura Server, so it keeps working with the internet
+ * venue LAN, served by Demo Server, so it keeps working with the internet
  * unplugged.
  *
  *   READ     GET  /api/v1/devices[?online&zone&product]   the fleet

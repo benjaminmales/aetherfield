@@ -4,7 +4,7 @@ import { themes as prismThemes } from "prism-react-renderer";
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Aetherfield Wiki",
-  tagline: "Aura wearables, Aura Link gateways and Aura Server",
+  tagline: "Aura wearables, Aura Link gateways and Demo Server",
   favicon: "img/favicon.svg",
   // Served at aetherfield.ai/wiki: the main site rewrites /wiki/* to this
   // project. Override with WIKI_BASE_URL=/ to serve from a domain root.
@@ -50,13 +50,13 @@ const config = {
               { to: "/products/aura-lite", label: "Aura Lite · coming soon", className: "soon" },
               { to: "/products/aura-tag", label: "Aura Tag" },
               { to: "/products/aura-link", label: "Aura Link" },
-              { to: "/products/aura-server", label: "Aura Server" },
+              { to: "/products/aura-server", label: "Demo Server" },
             ],
           },
           { to: "/aura-server/rest-api", label: "API", position: "left" },
-          // Aura Server runs on the client's own laptop. This page opens its
+          // Demo Server runs on the client's own laptop. This page opens its
           // console if it's running there, and explains how to start it if not.
-          { to: "/open-server", label: "Open Aura Server", position: "right", className: "local-server" },
+          { to: "/open-server", label: "Open Demo Server", position: "right", className: "local-server" },
           { href: "https://aetherfield.ai", label: "aetherfield.ai", position: "right" },
         ],
       },

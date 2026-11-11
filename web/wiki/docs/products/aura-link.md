@@ -5,7 +5,7 @@ title: Aura Link
 # Aura Link
 
 The venue gateway. An Aura Link talks to every Aura device in range by radio
-and to Aura Server over Ethernet. Each Link defines a **zone**: a device
+and to Demo Server over Ethernet. Each Link defines a **zone**: a device
 belongs to the zone of the Link that hears it most strongly.
 
 ## Specifications
@@ -39,7 +39,7 @@ the antenna before powering up, and keep it away from the Ethernet socket.
 | Solid blue | Starting up | Should last under a second |
 | Red, fast blink | Network chip not responding | Board seating on the adapter |
 | Red, one pulse per second | No Ethernet link | Cable, switch port, PoE |
-| Amber, blinking | Can't reach Aura Server | `link config` shows the right server? Server running and allowed through the firewall? |
+| Amber, blinking | Can't reach Demo Server | `link config` shows the right server? Server running and allowed through the firewall? |
 | Solid green | Connected | |
 | Green + blue flicker | Connected and hearing devices | |
 | White flash on green | Sending a command to the devices | |
@@ -58,4 +58,4 @@ and two radio channels sharing the load of a large crowd.
 ## Updating firmware
 
 Today: over USB-C, using the nRF Connect tools. The Link has an onboard programmer, so no extra hardware is needed. Updating Links
-over the network from Aura Server is planned.
+over the network from Demo Server is planned.

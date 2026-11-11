@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Aura Server</title>
+<title>Demo Server</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1275.6 850.4'%3E%3Cpath d='M854.4,0c2.2,87.8,27.4,172.2,77.9,244.1,70.5,100.2,182.9,165.4,305.8,177.5,8.5.8,21.4,2.2,37.5,2.4v426.4c-57.4-2.3-113.6-6.4-169.9-17.6C753.7,763.2,478.3,465.7,433.6,111.7l-7.6-70.7v807H0V0h854.4Z' fill='%23FF6B1A'/%3E%3C/svg%3E" />
 <style>
   /* Black, white, orange. Orange marks what you are about to change or just
@@ -85,7 +85,7 @@
   <div class="head">
     <svg viewBox="0 0 1275.6 850.4" aria-label="Aetherfield"><path d="M854.4,0c2.2,87.8,27.4,172.2,77.9,244.1,70.5,100.2,182.9,165.4,305.8,177.5,8.5.8,21.4,2.2,37.5,2.4v426.4c-57.4-2.3-113.6-6.4-169.9-17.6C753.7,763.2,478.3,465.7,433.6,111.7l-7.6-70.7v807H0V0h854.4Z" fill="#f2f2f2"/></svg>
     <span class="brand">Aetherfield</span>
-    <h1>Aura Server</h1>
+    <h1>Demo Server</h1>
     <div class="meta"><span id="srv">—</span><span><span class="dot" id="wsdot"></span><span id="wsstate">connecting</span></span></div>
   </div>
 
@@ -191,7 +191,7 @@ async function api(method, url, body) {
   const key = sessionStorage.getItem("auraKey"); if (key) headers.authorization = "Bearer " + key;
   const r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
   if (r.status === 401) {
-    const k = prompt("This Aura Server needs its API key:"); if (!k) throw new Error("API key required");
+    const k = prompt("This Demo Server needs its API key:"); if (!k) throw new Error("API key required");
     sessionStorage.setItem("auraKey", k); return api(method, url, body);
   }
   const j = await r.json().catch(() => ({}));

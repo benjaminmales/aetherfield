@@ -37,7 +37,7 @@ wearables arrive.
 | | |
 |---|---|
 | Power-up | Flashes red, green, blue, then waits dark for commands |
-| Presence | Sends a short "I'm here" beacon so Aura Server knows it's present and which zone it's in |
+| Presence | Sends a short "I'm here" beacon so Demo Server knows it's present and which zone it's in |
 | Light | Follows every colour and animation command for **everyone** or the **Aura Tags** group |
 | Starts moving | Sends a `motion` event, value `1`, and shows `flags.moving: true` |
 | Comes to rest | After 3 s without movement, sends a `motion` event, value `0`, with the peak movement (0–100) as `strength` |

@@ -4,7 +4,7 @@ title: Behaviours
 
 # Behaviours
 
-Behaviours are rules Aura Server runs for you, with no code: **when this
+Behaviours are rules Demo Server runs for you, with no code: **when this
 happens, do that**. Build them in the [console](/aura-server/console) or
 through the API. They run on the server, so they keep working with the
 internet down.
@@ -33,7 +33,7 @@ A behaviour can do one or more of:
 | Action | Fields |
 |---|---|
 | `light` | `target`: `device` (the one that triggered it), `zone` (its zone's Link) or `all`; `color`, `animation`, `brightness`; optional `durationS`, after which the target goes dark again |
-| `webhook` | `url`: Aura Server POSTs `{ behaviour, name, event }` to it |
+| `webhook` | `url`: Demo Server POSTs `{ behaviour, name, event }` to it |
 
 `zone` lights every device the zone's Link reaches. Radio doesn't stop at a
 wall, so devices near the boundary of a neighbouring zone may see it too.
